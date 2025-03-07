@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "74696492122",
+    "project_id": "car-plaza-b9689",
+    "storage_bucket": "car-plaza-b9689.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:74696492122:android:1405e6be9692ab40c88463",
+        "android_client_info": {
+          "package_name": "com.example.car_plaza"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7rAyOihJedy5gfOMq5gYUti-ADRUNRFk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
