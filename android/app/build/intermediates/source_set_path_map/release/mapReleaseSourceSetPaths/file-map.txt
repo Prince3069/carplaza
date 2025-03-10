@@ -1,0 +1,8 @@
+com.example.car_plaza.app-pngs-0 C:\Users\princ\Desktop\Flutter\carplaza\car_plaza\android\app\build\generated\res\pngs\release
+com.example.car_plaza.app-res-1 C:\Users\princ\Desktop\Flutter\carplaza\car_plaza\android\app\build\generated\res\processReleaseGoogleServices
+com.example.car_plaza.app-resValues-2 C:\Users\princ\Desktop\Flutter\carplaza\car_plaza\android\app\build\generated\res\resValues\release
+com.example.car_plaza.app-packageReleaseResources-3 C:\Users\princ\Desktop\Flutter\carplaza\car_plaza\android\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
+com.example.car_plaza.app-packageReleaseResources-4 C:\Users\princ\Desktop\Flutter\carplaza\car_plaza\android\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
+com.example.car_plaza.app-release-5 C:\Users\princ\Desktop\Flutter\carplaza\car_plaza\android\app\build\intermediates\merged_res\release\mergeReleaseResources
+com.example.car_plaza.app-main-6 C:\Users\princ\Desktop\Flutter\carplaza\car_plaza\android\app\src\main\res
+com.example.car_plaza.app-release-7 C:\Users\princ\Desktop\Flutter\carplaza\car_plaza\android\app\src\release\res

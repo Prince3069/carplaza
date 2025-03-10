@@ -1,0 +1,10 @@
+com.example.car_plaza:style/LaunchTheme = 0x7f040000
+com.example.car_plaza:style/NormalTheme = 0x7f040001
+com.example.car_plaza:string/google_storage_bucket = 0x7f030004
+com.example.car_plaza:string/gcm_defaultSenderId = 0x7f030000
+com.example.car_plaza:string/google_app_id = 0x7f030002
+com.example.car_plaza:string/google_crash_reporting_api_key = 0x7f030003
+com.example.car_plaza:mipmap/ic_launcher = 0x7f020000
+com.example.car_plaza:string/google_api_key = 0x7f030001
+com.example.car_plaza:string/project_id = 0x7f030005
+com.example.car_plaza:drawable/launch_background = 0x7f010000
