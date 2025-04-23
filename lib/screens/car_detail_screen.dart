@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:car_plaza/models/car.dart';
 import 'package:car_plaza/widgets/image_gallery.dart';
-import 'package:car_plaza/widgets/seller_info.dart';
-import 'package:car_plaza/widgets/similar_cars.dart';
+// import 'package:car_plaza/widgets/seller_info.dart';
+// import 'package:car_plaza/widgets/similar_cars.dart';
 
 class CarDetailScreen extends StatelessWidget {
   final Car car;
@@ -112,14 +112,14 @@ class CarDetailScreen extends StatelessWidget {
                     ],
                   ),
                   const Divider(height: 32),
-                  const SellerInfo(),
+                  // const SellerInfo(),
                   const Divider(height: 32),
                   const Text(
                     'Similar Cars',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  const SimilarCars(),
+                  // const SimilarCars(),
                 ],
               ),
             ),
