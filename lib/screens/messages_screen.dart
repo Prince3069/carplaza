@@ -2,7 +2,6 @@
 import 'package:car_plaza/models/car.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/widgets/message_list_item.dart';
-import 'package:car_plaza/models/message.dart';
 
 class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});

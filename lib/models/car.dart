@@ -26,7 +26,7 @@ class Car {
     this.sellerId,
     this.isFeatured = false,
     DateTime? createdAt,
-  }) : this.createdAt = createdAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now();
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
@@ -85,7 +85,7 @@ class UserModel {
     this.location,
     DateTime? createdAt,
     this.isVerified = false,
-  }) : this.createdAt = createdAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now();
 
   // Convert to Map for Firestore
   Map<String, dynamic> toMap() {

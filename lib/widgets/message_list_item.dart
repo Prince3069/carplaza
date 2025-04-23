@@ -1,7 +1,6 @@
 // File: lib/widgets/message_list_item.dart
 import 'package:car_plaza/models/car.dart';
 import 'package:flutter/material.dart';
-import 'package:car_plaza/models/message.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
