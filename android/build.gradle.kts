@@ -1,3 +1,15 @@
+buildscript {
+    dependencies {
+        // ✅ Firebase Gradle Plugin for google-services
+        classpath("com.google.gms:google-services:4.3.15")
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -5,6 +17,7 @@ allprojects {
     }
 }
 
+// ✅ Optional – set custom build directory
 val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
@@ -13,16 +26,11 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
-// Uncomment this if necessary
-// subprojects {
-//     project.evaluationDependsOn(":app")
-// }
-
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
-// // ✅ Ensure correct NDK version
+// ✅ Optional NDK config block – can be uncommented if needed
 // android {
-//     ndkVersion = "27.2.12479018" // Change this to your correct NDK version
+//     ndkVersion = "27.2.12479018"
 // }

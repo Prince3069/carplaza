@@ -1,0 +1,2 @@
+C:/Users/princ/Desktop/carplaza/android/app/.cxx/RelWithDebInfo/5m1i4771/x86/CMakeFiles/edit_cache.dir
+C:/Users/princ/Desktop/carplaza/android/app/.cxx/RelWithDebInfo/5m1i4771/x86/CMakeFiles/rebuild_cache.dir
