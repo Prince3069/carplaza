@@ -174,3 +174,43 @@
 //     );
 //   }
 // }
+
+class Car {
+  final String id;
+  final String title;
+  final String imageUrl;
+  final double price;
+  final String location;
+  final bool isFromFirebase; // Important to know source
+
+  Car({
+    required this.id,
+    required this.title,
+    required this.imageUrl,
+    required this.price,
+    required this.location,
+    this.isFromFirebase = false,
+  });
+
+  factory Car.fromFirebase(Map<String, dynamic> data, String id) {
+    return Car(
+      id: id,
+      title: data['title'],
+      imageUrl: data['imageUrl'],
+      price: double.parse(data['price'].toString()),
+      location: data['location'],
+      isFromFirebase: true,
+    );
+  }
+
+  factory Car.fromApi(Map<String, dynamic> data) {
+    return Car(
+      id: data['id'].toString(),
+      title: "${data['brand']} ${data['model']}",
+      imageUrl: data['image_url'] ?? '',
+      price: 20000, // Default or generated price
+      location: "Unknown",
+      isFromFirebase: false,
+    );
+  }
+}
