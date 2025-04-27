@@ -21,32 +21,32 @@
 //   }
 // }
 
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../models/car.dart';
+// import 'dart:convert';
+// import 'package:http/http.dart' as http;
+// import '../models/car.dart';
 
-class ApiService {
-  final String apiKey = "8bbb3c78179ada9cd0e955c5f88a55dc"; // your key
+// class ApiService {
+//   final String apiKey = "8bbb3c78179ada9cd0e955c5f88a55dc"; // your key
 
-  Future<List<Car>> fetchCars() async {
-    final url = Uri.parse(
-        "https://api.auto-data.net/v1/car-list"); // No API key in URL!
+//   Future<List<Car>> fetchCars() async {
+//     final url = Uri.parse(
+//         "https://api.auto-data.net/v1/car-list"); // No API key in URL!
 
-    final response = await http.get(
-      url,
-      headers: {
-        "Authorization": "Token $apiKey",
-      },
-    );
+//     final response = await http.get(
+//       url,
+//       headers: {
+//         "Authorization": "Token $apiKey",
+//       },
+//     );
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final List carsList = data['cars'];
+//     if (response.statusCode == 200) {
+//       final data = json.decode(response.body);
+//       final List carsList = data['cars'];
 
-      return carsList.map((json) => Car.fromApi(json)).toList();
-    } else {
-      print('Error: ${response.body}'); // debug log
-      throw Exception("Failed to fetch cars from API");
-    }
-  }
-}
+//       return carsList.map((json) => Car.fromApi(json)).toList();
+//     } else {
+//       print('Error: ${response.body}'); // debug log
+//       throw Exception("Failed to fetch cars from API");
+//     }
+//   }
+// }
