@@ -56,11 +56,11 @@ import 'package:http/http.dart' as http;
 import '../models/car.dart';
 
 class ApiService {
-  final String apiKey =
-      "XqskErMyTAV7o67n+CT54w==I4pRbsFxjwTNPaX5"; // ✅ Your API Key
+  final String apiKey = "XqskErMyTAV7o67n+CT54w==I4pRbsFxjwTNPaX5";
 
   Future<List<Car>> fetchCars() async {
-    final url = Uri.parse("https://api.api-ninjas.com/v1/cars?limit=10");
+    final url = Uri.parse(
+        "https://api.api-ninjas.com/v1/cars?make=Toyota&limit=10"); // ✅ specify a make!
 
     final response = await http.get(
       url,
@@ -76,8 +76,8 @@ class ApiService {
                 id: json['model'].toString(),
                 title: "${json['make']} ${json['model']}",
                 imageUrl:
-                    "https://source.unsplash.com/600x400/?${json['make']}+${json['model']}", // smart random image
-                price: 20000, // fake price for now
+                    "https://source.unsplash.com/600x400/?${json['make']}+${json['model']}",
+                price: 20000,
                 location: "Unknown",
                 isFromFirebase: false,
               ))
