@@ -50,3 +50,77 @@
 //     );
 //   }
 // }
+
+import 'package:flutter/material.dart';
+import '../models/car.dart';
+import '../services/api_service.dart';
+import '../services/firebase_service.dart';
+import '../widgets/car_card.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final ApiService _apiService = ApiService();
+  final FirebaseService _firebaseService = FirebaseService();
+
+  late Future<List<Car>> _cars;
+
+  @override
+  void initState() {
+    super.initState();
+    _cars = _fetchAllCars();
+  }
+
+  Future<List<Car>> _fetchAllCars() async {
+    final apiCars = await _apiService.fetchCars();
+    final firebaseCars = await _firebaseService.getCars();
+    return [...firebaseCars, ...apiCars];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Car Plaza'),
+      ),
+      body: FutureBuilder<List<Car>>(
+        future: _cars,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No cars available'));
+          } else {
+            final cars = snapshot.data!;
+            return GridView.builder(
+              padding: const EdgeInsets.all(8),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+              ),
+              itemCount: cars.length,
+              itemBuilder: (context, index) {
+                return CarCard(car: cars[index]);
+              },
+            );
+          }
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, '/upload');
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
