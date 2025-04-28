@@ -1,17 +1,9 @@
-// =================== lib/main.dart (updated for light/dark mode) ===================
-
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'screens/onboarding/onboarding_screen.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/auth/register_screen.dart';
 import 'screens/home/home_screen.dart';
-import 'screens/search_screen.dart';
-import 'screens/sell/sell_screen.dart';
-import 'screens/messages/messages_screen.dart';
-import 'screens/profile/profile_screen.dart';
 import 'routes.dart';
 
 void main() async {
@@ -27,25 +19,40 @@ class CarPlazApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<AuthService>(
       create: (_) => AuthService(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'CarPlaz',
-        theme: ThemeData(
-          brightness: Brightness.light,
-          primarySwatch: Colors.blue,
-          scaffoldBackgroundColor: Colors.white,
-        ),
-        darkTheme: ThemeData(
-          brightness: Brightness.dark,
-          primarySwatch: Colors.blue,
-          scaffoldBackgroundColor: Colors.black,
-        ),
-        themeMode: ThemeMode.system, // Auto switch based on device setting
-        initialRoute: '/',
-        routes: appRoutes,
+      child: Consumer<AuthService>(
+        builder: (context, authService, _) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'CarPlaz',
+            theme: ThemeData(
+              brightness: Brightness.light,
+              primarySwatch: Colors.blue,
+              scaffoldBackgroundColor: Colors.white,
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              primarySwatch: Colors.blue,
+              scaffoldBackgroundColor: Colors.black,
+              appBarTheme: const AppBarTheme(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            themeMode: ThemeMode.system, // Auto switch based on device setting
+
+            // Use the authService to determine the initial route
+            home: authService.currentUser != null
+                ? const HomeScreen()
+                : const OnboardingScreen(),
+
+            routes: appRoutes, // Use the routes defined in routes.dart
+          );
+        },
       ),
     );
   }
 }
-
-// =============================================================
