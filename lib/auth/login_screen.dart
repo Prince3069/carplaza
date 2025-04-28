@@ -1,6 +1,6 @@
-import 'package:carplaz/auth/register_screen.dart';
-import 'package:carplaz/auth/forgot_password_screen.dart';
-import 'package:carplaz/main.dart';
+import 'package:car_plaza/auth/register_screen.dart';
+import 'package:car_plaza/auth/forgot_password_screen.dart';
+import 'package:car_plaza/main.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
