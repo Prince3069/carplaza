@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart'; // <-- ADD this import
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService extends ChangeNotifier {
-  // <-- EXTEND ChangeNotifier
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  get currentUser => null;
+  // Fixed getter to properly return current user
+  User? get currentUser => _auth.currentUser;
 
   Future<User?> signUpWithEmailAndPassword(
     String email,
@@ -16,6 +16,7 @@ class AuthService extends ChangeNotifier {
         email: email,
         password: password,
       );
+      notifyListeners(); // Notify listeners when user changes
       return result.user;
     } catch (e) {
       print("Error signing up: $e");
@@ -32,6 +33,7 @@ class AuthService extends ChangeNotifier {
         email: email,
         password: password,
       );
+      notifyListeners(); // Notify listeners when user changes
       return result.user;
     } catch (e) {
       print("Error signing in: $e");
@@ -41,6 +43,7 @@ class AuthService extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _auth.signOut();
+    notifyListeners(); // Notify listeners when user signs out
   }
 
   User? getCurrentUser() {
