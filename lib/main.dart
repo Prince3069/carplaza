@@ -1,10 +1,10 @@
-import 'package:carplaz/auth/login_screen.dart';
-import 'package:carplaz/home/home_screen.dart';
-import 'package:carplaz/profile/profile_screen.dart';
-import 'package:carplaz/sell/sell_car_screen.dart';
-import 'package:carplaz/chat/chat_screen.dart';
-import 'package:carplaz/splash/splash_screen.dart';
-import 'package:carplaz/firebase_options.dart';
+import 'package:car_plaza/auth/login_screen.dart';
+import 'package:car_plaza/home/home_screen.dart';
+import 'package:car_plaza/profile/profile_screen.dart';
+import 'package:car_plaza/sell/sell_car_screen.dart';
+import 'package:car_plaza/chat/chat_screen.dart';
+import 'package:car_plaza/splash/splash_screen.dart';
+import 'package:car_plaza/firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
