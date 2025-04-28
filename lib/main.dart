@@ -1,7 +1,7 @@
-import 'package:car_plaza/auth/login_screen.dart';
-import 'package:car_plaza/screens/home_screen.dart';
-import 'package:car_plaza/screens/profile_screen.dart';
-import 'package:car_plaza/sell/sell_car_screen.dart';
+import 'package:car_plaza/screens/auth/login_screen.dart';
+import 'package:car_plaza/screens/home/home_screen.dart';
+import 'package:car_plaza/screens/profile/profile_screen.dart';
+import 'package:car_plaza/screens/sell/sell_screen.dart';
 import 'package:car_plaza/chat/chat_screen.dart';
 import 'package:car_plaza/splash/splash_screen.dart';
 import 'package:car_plaza/firebase_options.dart';

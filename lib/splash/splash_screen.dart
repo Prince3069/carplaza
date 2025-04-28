@@ -1,4 +1,4 @@
-import 'package:car_plaza/auth/login_screen.dart';
+import 'package:car_plaza/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/main.dart'; // To navigate to BottomNav after login
 import 'package:firebase_auth/firebase_auth.dart';

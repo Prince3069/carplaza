@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:car_plaza/screens/home_screen.dart';
+import 'package:car_plaza/screens/home/home_screen.dart';
 import 'package:car_plaza/screens/search_screen.dart';
 import 'package:car_plaza/screens/sell_screen.dart';
 import 'package:car_plaza/screens/messages_screen.dart';
-import 'package:car_plaza/screens/profile_screen.dart';
+import 'package:car_plaza/screens/profile/profile_screen.dart';
 
 class BottomNavScreen extends StatefulWidget {
   const BottomNavScreen({super.key});
