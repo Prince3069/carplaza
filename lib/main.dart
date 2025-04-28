@@ -1,38 +1,88 @@
-// File: lib/main.dart
+import 'package:carplaz/auth/login_screen.dart';
+import 'package:carplaz/home/home_screen.dart';
+import 'package:carplaz/profile/profile_screen.dart';
+import 'package:carplaz/sell/sell_car_screen.dart';
+import 'package:carplaz/chat/chat_screen.dart';
+import 'package:carplaz/splash/splash_screen.dart';
+import 'package:carplaz/firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'package:car_plaza/services/auth_service.dart';
-import 'package:car_plaza/screens/splash_screen.dart';
-import 'package:car_plaza/screens/auth/login_screen.dart';
-import 'package:car_plaza/screens/main_screen.dart';
-import 'package:car_plaza/utils/theme.dart';
+import 'auth/auth_provider.dart'; // We will create this file too
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const CarPlazApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class CarPlazApp extends StatelessWidget {
+  const CarPlazApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: MaterialApp(
-        title: 'Car Plaza',
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
+        debugShowCheckedModeBanner: false,
+        title: 'CarPlaz',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          fontFamily: 'Poppins',
+        ),
         home: const SplashScreen(),
-        routes: {
-          '/login': (context) => const LoginScreen(),
-          '/main': (context) => const MainScreen(),
-        },
+      ),
+    );
+  }
+}
+
+class BottomNavScreen extends StatefulWidget {
+  const BottomNavScreen({super.key});
+
+  @override
+  State<BottomNavScreen> createState() => _BottomNavScreenState();
+}
+
+class _BottomNavScreenState extends State<BottomNavScreen> {
+  int _selectedIndex = 0;
+
+  static final List<Widget> _screens = [
+    HomeScreen(),
+    ChatScreen(),
+    SellCarScreen(),
+    ChatScreen(),
+    ProfileScreen(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  final List<BottomNavigationBarItem> _bottomItems = const [
+    BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+    BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
+    BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Sell'),
+    BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Message'),
+    BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        items: _bottomItems,
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blueAccent,
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }
