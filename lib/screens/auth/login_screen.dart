@@ -1,9 +1,8 @@
-import 'package:car_plaza/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/services/auth_service.dart';
 import 'package:car_plaza/screens/auth/register_screen.dart';
-// ignore: unused_import
-import 'package:car_plaza/screens/home/home_screen.dart'; // Assuming this is where you'll show listings
+import 'package:car_plaza/screens/home/home_screen.dart';
+import 'package:car_plaza/screens/auth/forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -50,35 +50,81 @@ class _LoginScreenState extends State<LoginScreen> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    final user = await _authService.signInWithEmailAndPassword(
-                      _emailController.text.trim(),
-                      _passwordController.text.trim(),
+              SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen(),
+                      ),
                     );
-                    if (user != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Login successful!')),
-                      );
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HomeScreen(),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Login failed. Invalid credentials.'),
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: Text('Login'),
+                  },
+                  child: Text('Forgot Password?'),
+                ),
               ),
+              SizedBox(height: 20),
+              _isLoading
+                  ? CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            _isLoading = true;
+                          });
+
+                          try {
+                            final user =
+                                await _authService.signInWithEmailAndPassword(
+                              _emailController.text.trim(),
+                              _passwordController.text.trim(),
+                            );
+
+                            setState(() {
+                              _isLoading = false;
+                            });
+
+                            if (user != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Login successful!')),
+                              );
+
+                              // Navigate to HomeScreen and replace the entire navigation stack
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(
+                                  builder: (context) => HomeScreen(),
+                                ),
+                                (Route<dynamic> route) => false,
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Login failed. Invalid credentials.'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setState(() {
+                              _isLoading = false;
+                            });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: ${e.toString()}'),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: Text('Login'),
+                    ),
+              SizedBox(height: 20),
               TextButton(
                 onPressed: () {
                   Navigator.push(
@@ -93,5 +139,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }
