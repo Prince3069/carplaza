@@ -1,0 +1,11 @@
+# =================== flutter_native_splash.yaml ===================
+
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/images/logo.png
+  branding: assets/images/branding.png
+  android: true
+  ios: true
+  web: false  # We'll handle web manually
+
+# =============================================================
