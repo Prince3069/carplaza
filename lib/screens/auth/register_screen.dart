@@ -1,91 +1,95 @@
-// =================== lib/screens/auth/register_screen.dart ===================
-
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:car_plaza/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../services/auth_service.dart';
+import 'package:car_plaza/services/auth_service.dart';
+// ignore: unused_import
+import 'package:car_plaza/screens/home/home_screen.dart'; // Assuming this is where you'll show listings
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  _RegisterScreenState createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _email = '';
-  String _password = '';
-  String _name = '';
-  bool _isLoading = false;
-
-  void _register() async {
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
-    setState(() => _isLoading = true);
-
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = await authService.register(_email, _password);
-
-    if (user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'email': _email,
-        'name': _name,
-      });
-      Navigator.pushReplacementNamed(context, '/');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration failed')),
-      );
-    }
-
-    setState(() => _isLoading = false);
-  }
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      decoration: const InputDecoration(labelText: 'Name'),
-                      validator: (value) =>
-                          value!.isEmpty ? 'Enter name' : null,
-                      onSaved: (value) => _name = value!,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      decoration: const InputDecoration(labelText: 'Email'),
-                      validator: (value) =>
-                          value!.isEmpty ? 'Enter email' : null,
-                      onSaved: (value) => _email = value!,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      decoration: const InputDecoration(labelText: 'Password'),
-                      obscureText: true,
-                      validator: (value) =>
-                          value!.length < 6 ? 'Password too short' : null,
-                      onSaved: (value) => _password = value!,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _register,
-                      child: const Text('Register'),
-                    ),
-                  ],
-                ),
+      appBar: AppBar(title: Text('Register')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: <Widget>[
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: 'Email'),
+                validator: (value) {
+                  if (value == null || value.isEmpty || !value.contains('@')) {
+                    return 'Please enter a valid email address';
+                  }
+                  return null;
+                },
               ),
-            ),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(labelText: 'Password'),
+                validator: (value) {
+                  if (value == null || value.isEmpty || value.length < 6) {
+                    return 'Password must be at least 6 characters';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    final user = await _authService.signUpWithEmailAndPassword(
+                      _emailController.text.trim(),
+                      _passwordController.text.trim(),
+                    );
+                    if (user != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Registration successful!')),
+                      );
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HomeScreen(),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Registration failed. Please try again.',
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Text('Register'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Go back to the login screen
+                },
+                child: Text('Already have an account? Login'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
-
-// =============================================================

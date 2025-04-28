@@ -1,115 +1,97 @@
-// =================== lib/screens/auth/login_screen.dart ===================
-
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:car_plaza/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../services/auth_service.dart';
+import 'package:car_plaza/services/auth_service.dart';
+import 'package:car_plaza/screens/auth/register_screen.dart';
+// ignore: unused_import
+import 'package:car_plaza/screens/home/home_screen.dart'; // Assuming this is where you'll show listings
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _email = '';
-  String _password = '';
-  bool _isLoading = false;
-
-  void _login() async {
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
-    setState(() => _isLoading = true);
-
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = await authService.signIn(_email, _password);
-
-    setState(() => _isLoading = false);
-
-    if (user != null) {
-      Navigator.pushReplacementNamed(context, '/');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login failed.')),
-      );
-    }
-  }
-
-  void _forgotPassword() {
-    if (_email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email first')),
-      );
-      return;
-    }
-
-    FirebaseAuth.instance.sendPasswordResetEmail(email: _email).then((value) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password reset link sent!')),
-      );
-    }).catchError((e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
-    });
-  }
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                      decoration: const InputDecoration(labelText: 'Email'),
-                      validator: (value) =>
-                          value!.isEmpty ? 'Enter email' : null,
-                      onSaved: (value) => _email = value!,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      decoration: const InputDecoration(labelText: 'Password'),
-                      obscureText: true,
-                      validator: (value) =>
-                          value!.isEmpty ? 'Enter password' : null,
-                      onSaved: (value) => _password = value!,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        TextButton(
-                          onPressed: _forgotPassword,
-                          child: const Text('Forgot Password?'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pushReplacementNamed(
-                                context, '/register');
-                          },
-                          child: const Text('Register'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _login,
-                      child: const Text('Login'),
-                    ),
-                  ],
-                ),
+      appBar: AppBar(title: Text('Login')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: <Widget>[
+              TextFormField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: 'Email'),
+                validator: (value) {
+                  if (value == null || value.isEmpty || !value.contains('@')) {
+                    return 'Please enter a valid email address';
+                  }
+                  return null;
+                },
               ),
-            ),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(labelText: 'Password'),
+                validator: (value) {
+                  if (value == null || value.isEmpty || value.length < 6) {
+                    return 'Password must be at least 6 characters';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    final user = await _authService.signInWithEmailAndPassword(
+                      _emailController.text.trim(),
+                      _passwordController.text.trim(),
+                    );
+                    if (user != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Login successful!')),
+                      );
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HomeScreen(),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Login failed. Invalid credentials.'),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Text('Login'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RegisterScreen()),
+                  );
+                },
+                child: Text('Don\'t have an account? Register'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
-
-// =============================================================
