@@ -56,11 +56,12 @@ import 'package:http/http.dart' as http;
 import '../models/car.dart';
 
 class ApiService {
-  final String apiKey = "XqskErMyTAV7o67n+CT54w==I4pRbsFxjwTNPaX5";
+  final String apiKey =
+      "XqskErMyTAV7o67n+CT54w==I4pRbsFxjwTNPaX5"; // ✅ Your key
 
   Future<List<Car>> fetchCars() async {
     final url = Uri.parse(
-        "https://api.api-ninjas.com/v1/cars?make=Toyota&limit=10"); // ✅ specify a make!
+        "https://api.api-ninjas.com/v1/cars?make=Toyota"); // ❌ No limit parameter
 
     final response = await http.get(
       url,
