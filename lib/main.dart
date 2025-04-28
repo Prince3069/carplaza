@@ -1,6 +1,6 @@
 import 'package:car_plaza/auth/login_screen.dart';
-import 'package:car_plaza/home/home_screen.dart';
-import 'package:car_plaza/profile/profile_screen.dart';
+import 'package:car_plaza/screens/home_screen.dart';
+import 'package:car_plaza/screens/profile_screen.dart';
 import 'package:car_plaza/sell/sell_car_screen.dart';
 import 'package:car_plaza/chat/chat_screen.dart';
 import 'package:car_plaza/splash/splash_screen.dart';
