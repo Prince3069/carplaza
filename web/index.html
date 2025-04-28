@@ -33,6 +33,18 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <div id="splash">
+    <img src="assets/images/logo.png" alt="CarPlaz" style="width: 100px; margin-top: 20%;">
+    <h2 style="font-family: sans-serif; color: #333;">Loading CarPlaz...</h2>
+  </div>
+
+  <script>
+    window.addEventListener('load', function() {
+      document.getElementById('splash').style.display = 'none';
+    });
+  </script>
+
+  <script src="main.dart.js" type="application/javascript"></script>
 </body>
+
 </html>
