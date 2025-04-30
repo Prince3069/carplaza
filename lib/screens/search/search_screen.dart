@@ -89,6 +89,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           arguments: car,
                         );
                       },
+                      isHorizontal: false,
                     );
                   },
                 ),

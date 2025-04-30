@@ -12,7 +12,20 @@
           "package_name": "com.example.car_plaza"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "74696492122-0ug9grd4srfcd96adusj805uggqpcf8r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.car_plaza",
+            "certificate_hash": "80d0b3374ac048ace39b5275a26d94a7c0627bf2"
+          }
+        },
+        {
+          "client_id": "74696492122-qifq0gc3lqqavdte13m6b170v1kcfmnc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA7rAyOihJedy5gfOMq5gYUti-ADRUNRFk"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "74696492122-qifq0gc3lqqavdte13m6b170v1kcfmnc.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "74696492122-natjiff547ml9nmo8adk8b87nktq4qcg.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.carplaza"
+              }
+            }
+          ]
         }
       }
     }

@@ -33,6 +33,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cached_network_image: ^3.4.1
+  firebase_app_check: ^0.2.2
+  firebase_crashlytics: ^3.5.7
 
 dev_dependencies:
   flutter_test:
@@ -47,3 +49,4 @@ flutter:
     - assets/onboarding3.png
     - assets/onboarding2.png
     - assets/onboarding1.png
+    - assets/placeholder_car.jpg
