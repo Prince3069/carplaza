@@ -1,4 +1,6 @@
 // MESSAGING SYSTEM MODELS
+import 'package:car_plaza/models/user_model.dart';
+
 class Message {
   final String id;
   final String chatRoomId;
