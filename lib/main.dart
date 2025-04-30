@@ -1,18 +1,19 @@
-import 'package:car_plaza/providers/auth_provider.dart';
-import 'package:car_plaza/providers/car_provider.dart';
-import 'package:car_plaza/providers/chat_provider.dart';
-import 'package:car_plaza/providers/theme_provider.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'package:car_plaza/routes.dart';
+import 'package:car_plaza/utils/theme.dart';
 import 'package:car_plaza/screens/auth/login_screen.dart';
 import 'package:car_plaza/screens/home/home_screen.dart';
 import 'package:car_plaza/screens/onboarding/onboarding_screen.dart';
-import 'package:car_plaza/utils/theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:provider/provider.dart';
-import 'package:car_plaza/providers/auth_provider.dart'; // Ensure this exists
+
+import 'package:car_plaza/providers/auth_provider.dart' as local_auth;
+import 'package:car_plaza/providers/car_provider.dart';
+import 'package:car_plaza/providers/chat_provider.dart';
+import 'package:car_plaza/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,9 +28,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => local_auth.AuthProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        // Correct
         ChangeNotifierProvider(create: (_) => CarProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
@@ -61,10 +61,10 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<local_auth.AuthProvider>(context);
 
     return StreamBuilder<User?>(
-      stream: authProvider.authState,
+      stream: authProvider.authStateChanges,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.active) {
           final user = snapshot.data;
@@ -80,7 +80,7 @@ class AuthWrapper extends StatelessWidget {
           return const HomeScreen();
         }
 
-        return Scaffold(
+        return const Scaffold(
           backgroundColor: Colors.blue,
           body: Center(
             child: CircularProgressIndicator(

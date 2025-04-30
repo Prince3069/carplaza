@@ -14,6 +14,7 @@ class AuthProvider with ChangeNotifier {
   bool _isLoading = false;
 
   UserModel? get user => _user;
+  UserModel? get userData => _user; // 👈 Add this
   User? get firebaseUser => _firebaseUser;
   bool get isLoading => _isLoading;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
