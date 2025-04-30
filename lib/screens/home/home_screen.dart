@@ -649,7 +649,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Navigator.pushNamed(
                   context,
-                  '/car_detail_screen.dart',
+                  '/CarDetailScreen',
                   arguments: car,
                 );
               },
@@ -780,7 +780,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onTap: () {
                 Navigator.pushNamed(
                   context,
-                  '/car-detail',
+                  '/car-detail-screen',
                   arguments: car,
                 );
               },
@@ -799,7 +799,7 @@ class _HomeScreenState extends State<HomeScreen> {
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.symmetric(vertical: 5.0),
             child: Shimmer.fromColors(
               baseColor: Colors.grey[300]!,
               highlightColor: Colors.grey[100]!,
@@ -864,7 +864,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildEmptyRecentCarsPlaceholder() {
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(20.0),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -895,7 +895,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSpecialOffersPlaceholder() {
     return Container(
-      height: 120,
+      height: 130,
       decoration: BoxDecoration(
         color: Colors.amber.withOpacity(0.2),
         borderRadius: BorderRadius.circular(16),
@@ -912,7 +912,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.only(top: 10, left: 10, right: 10),
+            // padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -930,13 +931,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 17, vertical: 12),
                   ),
                   child: const Text('Claim Now'),
                 ),

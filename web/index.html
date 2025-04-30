@@ -31,6 +31,21 @@
 
   <title>car_plaza</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Inside <head> -->
+<script defer src="https://www.gstatic.com/firebasejs/10.3.1/firebase-app.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.3.1/firebase-auth.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCNfC3g5gIVzSxcUe_BPFiNf61E8EhdimU",
+  authDomain: "car-plaza-b9689.firebaseapp.com",
+  projectId: "car-plaza-b9689",
+  storageBucket: "car-plaza-b9689.firebasestorage.app",
+  messagingSenderId: "74696492122",
+  appId: "1:74696492122:web:77c2a16681317df6c88463",
+  measurementId: "G-453PDQ8XBR"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
 </head>
 <body>
   <div id="splash">
