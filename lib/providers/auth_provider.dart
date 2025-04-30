@@ -1,38 +1,85 @@
-// AUTHENTICATION STATE MANAGEMENT
-import 'package:car_plaza/models/payment_method_model.dart';
-import 'package:car_plaza/models/user_model.dart';
-import 'package:car_plaza/services/auth_service.dart';
-import 'package:car_plaza/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:car_plaza/models/user_model.dart';
+import 'package:car_plaza/services/firestore_service.dart';
 
 class AuthProvider with ChangeNotifier {
-  final AuthService _authService = AuthService();
-  final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirestoreService _firestore = FirestoreService();
 
-  UserModel? _userData;
+  UserModel? _user;
   User? _firebaseUser;
+  bool _isLoading = false;
 
-  UserModel? get userData => _userData;
+  UserModel? get user => _user;
   User? get firebaseUser => _firebaseUser;
-  Stream<User?> get authState => _authService.authStateChanges;
+  bool get isLoading => _isLoading;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   AuthProvider() {
-    authState.listen((user) {
+    _setupAuthListener();
+  }
+
+  void _setupAuthListener() {
+    _auth.authStateChanges().listen((User? user) async {
       _firebaseUser = user;
       if (user != null) {
-        _loadUserData(user.uid);
+        await _loadUserData(user.uid);
       } else {
-        _userData = null;
+        _user = null;
       }
       notifyListeners();
     });
   }
 
   Future<void> _loadUserData(String uid) async {
-    _userData = await _firestoreService.getUserData(uid);
-    notifyListeners();
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      _user = await _firestore.getUser(uid);
+
+      if (_user == null && _firebaseUser != null) {
+        // Create new user if doesn't exist
+        _user = UserModel(
+          uid: uid,
+          email: _firebaseUser!.email ?? '',
+          fullName: _firebaseUser!.displayName ?? 'New User',
+          phone: _firebaseUser!.phoneNumber ?? '',
+          createdAt: DateTime.now(),
+          isSeller: false,
+          profileImage: _firebaseUser!.photoURL ?? '',
+        );
+        await _firestore.createUser(_user!);
+      }
+    } catch (e) {
+      debugPrint("Error loading user data: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<User?> signInWithEmail(String email, String password) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      return credential.user;
+    } catch (e) {
+      debugPrint("Email sign in error: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<User?> signUpWithEmail({
@@ -42,11 +89,17 @@ class AuthProvider with ChangeNotifier {
     required String phone,
   }) async {
     try {
-      User? user =
-          await _authService.signUpWithEmailAndPassword(email, password);
-      if (user != null) {
-        UserModel newUser = UserModel(
-          uid: user.uid,
+      _isLoading = true;
+      notifyListeners();
+
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (credential.user != null) {
+        _user = UserModel(
+          uid: credential.user!.uid,
           email: email,
           fullName: fullName,
           phone: phone,
@@ -54,113 +107,79 @@ class AuthProvider with ChangeNotifier {
           isSeller: false,
           profileImage: '',
         );
-
-        await _firestoreService.createUserData(newUser);
-        _userData = newUser;
-        notifyListeners();
+        await _firestore.createUser(_user!);
       }
-      return user;
-    } catch (e) {
-      debugPrint("Provider Sign Up Error: $e");
-      return null;
-    }
-  }
 
-  Future<User?> signInWithEmail(String email, String password) async {
-    try {
-      User? user =
-          await _authService.signInWithEmailAndPassword(email, password);
-      if (user != null) {
-        await _loadUserData(user.uid);
-      }
-      return user;
+      return credential.user;
     } catch (e) {
-      debugPrint("Provider Sign In Error: $e");
-      return null;
+      debugPrint("Email sign up error: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<User?> signInWithGoogle() async {
     try {
-      User? user = await _authService.signInWithGoogle();
-      if (user != null) {
-        UserModel? existingUser = await _firestoreService.getUserData(user.uid);
+      _isLoading = true;
+      notifyListeners();
 
-        if (existingUser == null) {
-          UserModel newUser = UserModel(
-            uid: user.uid,
-            email: user.email ?? '',
-            fullName: user.displayName ?? '',
-            phone: user.phoneNumber ?? '',
-            createdAt: DateTime.now(),
-            isSeller: false,
-            profileImage: user.photoURL ?? '',
-          );
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
 
-          await _firestoreService.createUserData(newUser);
-          _userData = newUser;
-        } else {
-          _userData = existingUser;
-        }
-        notifyListeners();
-      }
-      return user;
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      return userCredential.user;
     } catch (e) {
-      debugPrint("Provider Google Sign In Error: $e");
-      return null;
+      debugPrint("Google sign in error: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> signOut() async {
-    await _authService.signOut();
-    _userData = null;
-    notifyListeners();
+    try {
+      await _auth.signOut();
+      await _googleSignIn.signOut();
+      _user = null;
+    } catch (e) {
+      debugPrint("Sign out error: $e");
+      rethrow;
+    } finally {
+      notifyListeners();
+    }
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
-    await _authService.sendPasswordResetEmail(email);
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      debugPrint("Password reset error: $e");
+      rethrow;
+    }
   }
 
-  Future<List<PaymentMethod>> getPaymentMethods() async {
-    if (_userData == null) return [];
-    return await _firestoreService.getUserPaymentMethods(_userData!.uid);
-  }
+  Future<void> updateUserProfile(UserModel updatedUser) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
 
-  Future<void> addPaymentMethod(PaymentMethod method) async {
-    if (_userData == null) return;
-    await _firestoreService.addPaymentMethod(
-      userId: _userData!.uid,
-      method: method,
-    );
-    notifyListeners();
-  }
-
-  Future<void> setDefaultPaymentMethod(String methodId) async {
-    if (_userData == null) return;
-    await _firestoreService.setDefaultPaymentMethod(
-      userId: _userData!.uid,
-      methodId: methodId,
-    );
-    notifyListeners();
-  }
-
-  // Future<String> uploadProfileImage(XFile imageFile) async {
-  //   if (_userData == null) return '';
-
-  //   // final imageUrl = await _firestoreService.uploadProfileImage(
-  //   //   userId: _userData!.uid,
-  //   //   imageFile: imageFile,
-  //   // );
-
-  //   // _userData = _userData!.copyWith(profileImage: imageUrl);
-  //   // notifyListeners();
-
-  //   // return imageUrl;
-  // }
-
-  Future<void> updateUserData(UserModel user) async {
-    await _firestoreService.updateUserData(user);
-    _userData = user;
-    notifyListeners();
+      await _firestore.updateUser(updatedUser);
+      _user = updatedUser;
+    } catch (e) {
+      debugPrint("Update profile error: $e");
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }
