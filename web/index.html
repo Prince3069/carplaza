@@ -2,21 +2,9 @@
 <html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Car Plaza - Your car marketplace">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Car Plaza">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
   <title>Car Plaza</title>
   <link rel="manifest" href="manifest.json">
 
@@ -25,41 +13,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-  <style>
-    #splash {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #ffffff;
-      z-index: 9999;
-      transition: opacity 0.5s ease-out;
-    }
-    .splash-logo {
-      width: 120px;
-      margin-bottom: 20px;
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-  </style>
-</head>
-<body>
-  <div id="splash">
-    <img src="assets/images/logo.png" class="splash-logo" alt="Car Plaza">
-    <h2 style="font-family: sans-serif; color: #333;">Loading Car Plaza...</h2>
-  </div>
 
   <script>
-    // Firebase configuration
+    // Your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCNfC3g5gIVzSxcUe_BPFiNf61E8EhdimU",
       authDomain: "car-plaza-b9689.firebaseapp.com",
@@ -72,17 +28,9 @@
 
     // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-
-    // Hide splash screen when Flutter is ready
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        const splash = document.getElementById('splash');
-        splash.style.opacity = '0';
-        setTimeout(() => splash.style.display = 'none', 500);
-      }, 1000);
-    });
   </script>
-
+</head>
+<body>
   <script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>
