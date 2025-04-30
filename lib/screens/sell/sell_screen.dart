@@ -41,6 +41,7 @@ class SellScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.pushNamed(context, '/upload-car');
               },
+              color: Colors.blue,
             ),
             const SizedBox(height: 20),
             CustomButton(
