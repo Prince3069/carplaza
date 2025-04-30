@@ -1,176 +1,180 @@
-// FIRESTORE DATABASE SERVICE
-import 'package:car_plaza/models/car_model.dart';
-import 'package:car_plaza/models/message_model.dart';
-import 'package:car_plaza/models/payment_method_model.dart';
-import 'package:car_plaza/models/user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:car_plaza/models/car_model.dart';
+import 'package:car_plaza/models/user_model.dart';
+import 'package:car_plaza/models/message_model.dart';
 import 'package:image_picker/image_picker.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // User Collection Reference
-  final CollectionReference _usersCollection = 
-      FirebaseFirestore.instance.collection('users');
+  /* ---------------------------- User Operations ---------------------------- */
 
-  // User Operations
-  Future<void> createUserData(UserModel user) async {
-    await _usersCollection.doc(user.uid).set(user.toMap());
+  Future<void> createUser(UserModel user) async {
+    await _firestore.collection('users').doc(user.uid).set(user.toMap());
   }
 
-  Future<UserModel?> getUserData(String uid) async {
-    DocumentSnapshot doc = await _usersCollection.doc(uid).get();
-    return doc.exists ? UserModel.fromMap(doc.data() as Map<String, dynamic>) : null;
+  Future<UserModel?> getUser(String uid) async {
+    DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+    return doc.exists
+        ? UserModel.fromMap(doc.data() as Map<String, dynamic>)
+        : null;
   }
 
-  Future<void> updateUserData(UserModel user) async {
-    await _usersCollection.doc(user.uid).update(user.toMap());
+  Future<void> updateUser(UserModel user) async {
+    await _firestore.collection('users').doc(user.uid).update(user.toMap());
   }
 
-  // Payment Methods
-  Future<List<PaymentMethod>> getUserPaymentMethods(String userId) async {
-    final snapshot = await _usersCollection
-        .doc(userId)
-        .collection('payment_methods')
-        .get();
-    return snapshot.docs
-        .map((doc) => PaymentMethod.fromMap(doc.data()))
-        .toList();
-  }
+  /* ---------------------------- Car Operations ---------------------------- */
 
-  Future<void> addPaymentMethod({
-    required String userId,
-    required PaymentMethod method,
-  }) async {
-    await _usersCollection
-        .doc(userId)
-        .collection('payment_methods')
-        .doc(method.id)
-        .set(method.toMap());
-  }
+  Stream<List<CarModel>> getCarsStream({bool featuredOnly = false}) {
+    Query query =
+        _firestore.collection('cars').orderBy('createdAt', descending: true);
 
-  Future<void> setDefaultPaymentMethod({
-    required String userId,
-    required String methodId,
-  }) async {
-    final batch = _firestore.batch();
-    
-    // Reset all methods to non-default
-    final methods = await _usersCollection
-        .doc(userId)
-        .collection('payment_methods')
-        .get();
-    
-    for (final doc in methods.docs) {
-      batch.update(doc.reference, {'isDefault': false});
+    if (featuredOnly) {
+      query = query.where('isFeatured', isEqualTo: true);
     }
-    
-    // Set the selected method as default
-    batch.update(
-      _usersCollection.doc(userId).collection('payment_methods').doc(methodId),
-      {'isDefault': true},
-    );
-    
-    await batch.commit();
+
+    return query.snapshots().map((snapshot) =>
+        snapshot.docs.map((doc) => CarModel.fromMap(doc.data())).toList());
   }
 
-  // Car Operations
-  Future<List<CarModel>> getFeaturedCars() async {
+  Future<List<CarModel>> searchCars(String query) async {
     final snapshot = await _firestore
         .collection('cars')
-        .where('isFeatured', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .limit(10)
+        .where('make', isGreaterThanOrEqualTo: query)
+        .where('make', isLessThan: query + 'z')
         .get();
-    
-    return snapshot.docs
-        .map((doc) => CarModel.fromMap(doc.data()))
-        .toList();
+
+    return snapshot.docs.map((doc) => CarModel.fromMap(doc.data())).toList();
   }
 
-  Future<List<CarModel>> getRecentCars() async {
-    final snapshot = await _firestore
-        .collection('cars')
-        .orderBy('createdAt', descending: true)
-        .limit(20)
-        .get();
-    
-    return snapshot.docs
-        .map((doc) => CarModel.fromMap(doc.data()))
-        .toList();
+  Future<String> addCar(CarModel car) async {
+    final docRef = await _firestore.collection('cars').add(car.toMap());
+    return docRef.id;
   }
 
-  Future<void> addCar(CarModel car) async {
+  Future<void> updateCar(CarModel car) async {
+    await _firestore.collection('cars').doc(car.id).update(car.toMap());
+  }
+
+  Future<void> deleteCar(String carId) async {
+    await _firestore.collection('cars').doc(carId).delete();
+  }
+
+  /* ------------------------- Image Upload Operations ------------------------- */
+
+  Future<String> uploadCarImage(XFile imageFile) async {
+    final ref = _storage
+        .ref()
+        .child('car_images/${DateTime.now().millisecondsSinceEpoch}');
+    await ref.putData(await imageFile.readAsBytes());
+    return await ref.getDownloadURL();
+  }
+
+  Future<String> uploadProfileImage(String userId, XFile imageFile) async {
+    final ref = _storage.ref().child('profile_images/$userId');
+    await ref.putData(await imageFile.readAsBytes());
+    return await ref.getDownloadURL();
+  }
+
+  /* ------------------------- Saved Cars Operations ------------------------- */
+
+  Future<void> saveCarForUser(String userId, String carId) async {
     await _firestore
-        .collection('cars')
-        .doc(car.id)
-        .set(car.toMap());
-  }
-
-  // Saved Cars
-  Future<List<CarModel>> getSavedCars(String userId) async {
-    final snapshot = await _usersCollection
+        .collection('users')
         .doc(userId)
         .collection('saved_cars')
-        .get();
-    
-    return snapshot.docs
-        .map((doc) => CarModel.fromMap(doc.data()))
-        .toList();
+        .doc(carId)
+        .set({'savedAt': FieldValue.serverTimestamp()});
   }
 
-  Future<void> addSavedCar({
-    required String userId,
-    required CarModel car,
-  }) async {
-    await _usersCollection
-        .doc(userId)
-        .collection('saved_cars')
-        .doc(car.id)
-        .set(car.toMap());
-  }
-
-  Future<void> removeSavedCar({
-    required String userId,
-    required String carId,
-  }) async {
-    await _usersCollection
+  Future<void> removeSavedCar(String userId, String carId) async {
+    await _firestore
+        .collection('users')
         .doc(userId)
         .collection('saved_cars')
         .doc(carId)
         .delete();
   }
 
-  // Chat Operations
-  Future<List<ChatRoom>> getUserChatRooms(String userId) async {
-    final snapshot = await _firestore
-        .collection('chat_rooms')
-        .where('participants', arrayContains: userId)
-        .get();
-    
-    return snapshot.docs
-        .map((doc) => ChatRoom.fromMap(doc.data()))
-        .toList();
+  Stream<List<String>> getUserSavedCarIds(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('saved_cars')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
   }
 
-  Future<List<Message>> getChatMessages(String chatRoomId) async {
-    final snapshot = await _firestore
+  /* ------------------------- Messaging Operations ------------------------- */
+
+  Future<String> createChatRoom({
+    required String carId,
+    required String sellerId,
+    required String buyerId,
+  }) async {
+    final chatId = '${buyerId}_${sellerId}_$carId';
+
+    await _firestore.collection('chat_rooms').doc(chatId).set({
+      'carId': carId,
+      'sellerId': sellerId,
+      'buyerId': buyerId,
+      'lastMessage': '',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'participants': [sellerId, buyerId]
+    });
+
+    return chatId;
+  }
+
+  Stream<List<ChatRoom>> getUserChatRooms(String userId) {
+    return _firestore
         .collection('chat_rooms')
-        .doc(chatRoomId)
+        .where('participants', arrayContains: userId)
+        .orderBy('lastMessageTime', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => ChatRoom.fromMap(doc.data())).toList());
+  }
+
+  Stream<List<Message>> getChatMessages(String chatId) {
+    return _firestore
+        .collection('chat_rooms')
+        .doc(chatId)
         .collection('messages')
         .orderBy('sentAt', descending: true)
-        .get();
-    
-    return snapshot.docs
-        .map((doc) => Message.fromMap(doc.data()))
-        .toList();
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((doc) => Message.fromMap(doc.data())).toList());
   }
 
   Future<void> sendMessage({
-    required String chatRoomId,
+    required String chatId,
     required String senderId,
     required String text,
   }) async {
-    final message = Message
+    final messageRef = _firestore
+        .collection('chat_rooms')
+        .doc(chatId)
+        .collection('messages')
+        .doc();
+
+    final message = Message(
+      id: messageRef.id,
+      chatRoomId: chatId,
+      senderId: senderId,
+      text: text,
+      sentAt: DateTime.now(),
+    );
+
+    await messageRef.set(message.toMap());
+
+    // Update last message in chat room
+    await _firestore.collection('chat_rooms').doc(chatId).update({
+      'lastMessage': text,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    });
+  }
+}
