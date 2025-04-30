@@ -1,68 +1,115 @@
-// =================== lib/widgets/car_card.dart ===================
-
+// CAR LISTING CARD WIDGET
+import 'package:car_plaza/models/car_model.dart';
+import 'package:car_plaza/utils/helpers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../models/car.dart';
 
 class CarCard extends StatelessWidget {
-  final Car car;
+  final CarModel car;
+  final void Function()? onTap;
+  final bool showSaveButton;
 
-  const CarCard({Key? key, required this.car}) : super(key: key);
+  const CarCard({
+    super.key,
+    required this.car,
+    this.onTap,
+    this.showSaveButton = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 4,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          car.imageUrls.isNotEmpty
-              ? Image.network(
-                  car.imageUrls[0],
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                )
-              : Container(
-                  height: 200,
-                  color: Colors.grey[300],
-                  child: const Center(child: Text('No Image')),
-                ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  car.title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '\$${car.price.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${car.make} ${car.model} • ${car.year}',
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Car Image with placeholder
+            ClipRRect(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(8)),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: car.images.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: car.images.first,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                          child:
+                              const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Image.asset(
+                          'assets/placeholder_car.jpg',
+                          fit: BoxFit.cover,
+                        ),
+                        fit: BoxFit.cover,
+                      )
+                    : Image.asset(
+                        'assets/placeholder_car.jpg',
+                        fit: BoxFit.cover,
+                      ),
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${car.year} ${car.make} ${car.model}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (showSaveButton)
+                        IconButton(
+                          icon: const Icon(Icons.favorite_border),
+                          onPressed: () {},
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    car.location,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        Helpers.formatCurrency(car.price),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.speed, size: 16),
+                          const SizedBox(width: 4),
+                          Text('${car.mileage.toStringAsFixed(0)} km'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-
-// =============================================================
