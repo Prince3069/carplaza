@@ -1,3 +1,4 @@
+import 'package:car_plaza/screens/home/car_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/screens/home/car_detail_screen.dart';
