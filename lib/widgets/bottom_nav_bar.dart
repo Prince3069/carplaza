@@ -1,24 +1,23 @@
+// BOTTOM NAVIGATION BAR WIDGET
 import 'package:flutter/material.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
-  final Function(int) onTap;
+  final void Function(int) onTap;
 
   const BottomNavBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed, // Required for more than 3 items
       currentIndex: currentIndex,
       onTap: onTap,
-      selectedItemColor: Colors.blue,
-      unselectedItemColor: Colors.grey,
-      items: const <BottomNavigationBarItem>[
+      type: BottomNavigationBarType.fixed,
+      items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home),
           label: 'Home',
@@ -28,15 +27,15 @@ class BottomNavBar extends StatelessWidget {
           label: 'Search',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.add_circle_outline),
+          icon: Icon(Icons.sell),
           label: 'Sell',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.message_outlined),
+          icon: Icon(Icons.message),
           label: 'Messages',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
+          icon: Icon(Icons.person),
           label: 'Profile',
         ),
       ],
