@@ -1,14 +1,13 @@
-// =================== lib/screens/home/home_screen.dart ===================
-
-import 'package:car_plaza/models/car.dart';
-import 'package:car_plaza/services/car_service.dart';
-import 'package:car_plaza/services/api_service.dart';
+// HOME SCREEN
+import 'package:car_plaza/providers/auth_provider.dart';
+import 'package:car_plaza/providers/car_provider.dart';
+import 'package:car_plaza/widgets/bottom_nav_bar.dart';
+import 'package:car_plaza/widgets/car_card.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/car_card.dart';
-import '../../widgets/bottom_nav_bar.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -16,74 +15,182 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  List<Car> _cars = [];
-  final CarService _carService = CarService();
-  final ApiService _apiService = ApiService();
-  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadCars();
+    _loadData();
   }
 
-  Future<void> _loadCars() async {
-    setState(() => _isLoading = true);
-    List<Car> firebaseCars = await _carService.fetchCars();
-    List<Car> apiCars = await _apiService.fetchExternalCars();
-    setState(() {
-      _cars = [...firebaseCars, ...apiCars];
-      _isLoading = false;
-    });
-  }
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        break; // Already on Home
-      case 1:
-        Navigator.pushNamed(context, '/search');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/sell');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/messages');
-        break;
-      case 4:
-        Navigator.pushNamed(context, '/profile');
-        break;
-    }
+  Future<void> _loadData() async {
+    final carProvider = Provider.of<CarProvider>(context, listen: false);
+    await carProvider.loadFeaturedCars();
+    await carProvider.loadRecentCars();
   }
 
   @override
   Widget build(BuildContext context) {
+    final carProvider = Provider.of<CarProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('CarPlaz'),
-        centerTitle: true,
+        title: const Text('Car Plaza'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              Navigator.pushNamed(context, '/search');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () {},
+          ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _cars.isEmpty
-              ? const Center(child: Text('No cars found'))
-              : ListView.builder(
-                  itemCount: _cars.length,
-                  itemBuilder: (context, index) {
-                    return CarCard(car: _cars[index]);
-                  },
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          // Home Tab
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                // Featured Cars Section
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Featured Cars',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 220,
+                        child: carProvider.isLoading
+                            ? ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: 3,
+                                itemBuilder: (context, index) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: SizedBox(
+                                      width: 200,
+                                      child: Card(
+                                        child: Placeholder(),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: carProvider.featuredCars.length,
+                                itemBuilder: (context, index) {
+                                  final car = carProvider.featuredCars[index];
+                                  return SizedBox(
+                                    width: 200,
+                                    child: CarCard(
+                                      car: car,
+                                      onTap: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          '/car-detail',
+                                          arguments: car,
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
+                // Recent Cars Section
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Recently Added',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      carProvider.isLoading
+                          ? ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: 5,
+                              itemBuilder: (context, index) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Card(
+                                    child: SizedBox(
+                                      height: 120,
+                                      child: Placeholder(),
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: carProvider.recentCars.length,
+                              itemBuilder: (context, index) {
+                                final car = carProvider.recentCars[index];
+                                return CarCard(
+                                  car: car,
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/car-detail',
+                                      arguments: car,
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Search Tab
+          const Center(child: Text('Search Screen')),
+          // Sell Tab
+          const Center(child: Text('Sell Screen')),
+          // Messages Tab
+          const Center(child: Text('Messages Screen')),
+          // Profile Tab
+          const Center(child: Text('Profile Screen')),
+        ],
+      ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+        },
       ),
+      floatingActionButton: _currentIndex == 2
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/upload-car');
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
     );
   }
 }
-
-// =============================================================
