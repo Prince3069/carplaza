@@ -1,9 +1,11 @@
-// =================== lib/screens/onboarding/onboarding_screen.dart ===================
-
+// ONBOARDING SCREEN
+import 'package:car_plaza/constants/colors.dart';
+import 'package:car_plaza/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -13,25 +15,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int _currentPage = 0;
 
-  final List<Map<String, String>> onboardingData = [
+  final List<Map<String, String>> _onboardingData = [
     {
-      'title': 'Welcome to CarPlaz',
-      'subtitle': 'The best platform to buy and sell cars easily.',
-      'image': 'assets/images/onboarding1.png',
+      'title': 'Find Your Dream Car',
+      'description':
+          'Browse thousands of quality vehicles from trusted sellers',
+      'image': 'assets/onboarding1.png',
     },
     {
-      'title': 'Browse & Buy',
-      'subtitle': 'Explore a wide variety of cars from trusted sellers.',
-      'image': 'assets/images/onboarding2.png',
+      'title': 'Sell Your Car Easily',
+      'description': 'List your car in minutes and connect with serious buyers',
+      'image': 'assets/onboarding2.png',
     },
     {
-      'title': 'Sell Quickly',
-      'subtitle': 'List your car in minutes and chat with buyers.',
-      'image': 'assets/images/onboarding3.png',
+      'title': 'Safe Transactions',
+      'description':
+          'Our escrow system ensures secure payments for all parties',
+      'image': 'assets/onboarding3.png',
     },
   ];
 
-  void _finishOnboarding() {
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _navigateToAuth() {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
@@ -42,76 +52,89 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           PageView.builder(
             controller: _controller,
+            itemCount: _onboardingData.length,
             onPageChanged: (index) {
-              setState(() {
-                _currentPage = index;
-              });
+              setState(() => _currentPage = index);
             },
-            itemCount: onboardingData.length,
             itemBuilder: (context, index) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    onboardingData[index]['image']!,
-                    height: 300,
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    onboardingData[index]['title']!,
-                    style: const TextStyle(
-                        fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      onboardingData[index]['subtitle']!,
-                      style: const TextStyle(fontSize: 16, color: Colors.grey),
-                      textAlign: TextAlign.center,
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: Image.asset(
+                        _onboardingData[index]['image']!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
                     ),
-                  ),
-                ],
+                    Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            _onboardingData[index]['title']!,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _onboardingData[index]['description']!,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               );
             },
           ),
           Positioned(
-            bottom: 20,
-            left: 30,
-            right: 30,
+            bottom: 40,
+            left: 0,
+            right: 0,
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    onboardingData.length,
-                    (index) => Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: _currentPage == index ? 16 : 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color:
-                            _currentPage == index ? Colors.blue : Colors.grey,
-                        borderRadius: BorderRadius.circular(4),
+                SmoothPageIndicator(
+                  controller: _controller,
+                  count: _onboardingData.length,
+                  effect: const WormEffect(
+                    dotHeight: 8,
+                    dotWidth: 8,
+                    activeDotColor: AppColors.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _navigateToAuth,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        _currentPage == _onboardingData.length - 1
+                            ? 'Get Started'
+                            : 'Skip',
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_currentPage == onboardingData.length - 1) {
-                      _finishOnboarding();
-                    } else {
-                      _controller.nextPage(
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeInOut,
-                      );
-                    }
-                  },
-                  child: Text(_currentPage == onboardingData.length - 1
-                      ? 'Get Started'
-                      : 'Next'),
                 ),
               ],
             ),
@@ -121,5 +144,3 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
-
-// =============================================================
