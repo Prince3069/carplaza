@@ -1,9 +1,11 @@
 // AUTHENTICATION STATE MANAGEMENT
+import 'package:car_plaza/models/payment_method_model.dart';
 import 'package:car_plaza/models/user_model.dart';
 import 'package:car_plaza/services/auth_service.dart';
 import 'package:car_plaza/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -142,19 +144,19 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String> uploadProfileImage(XFile imageFile) async {
-    if (_userData == null) return '';
+  // Future<String> uploadProfileImage(XFile imageFile) async {
+  //   if (_userData == null) return '';
 
-    final imageUrl = await _firestoreService.uploadProfileImage(
-      userId: _userData!.uid,
-      imageFile: imageFile,
-    );
+  //   // final imageUrl = await _firestoreService.uploadProfileImage(
+  //   //   userId: _userData!.uid,
+  //   //   imageFile: imageFile,
+  //   // );
 
-    _userData = _userData!.copyWith(profileImage: imageUrl);
-    notifyListeners();
+  //   // _userData = _userData!.copyWith(profileImage: imageUrl);
+  //   // notifyListeners();
 
-    return imageUrl;
-  }
+  //   // return imageUrl;
+  // }
 
   Future<void> updateUserData(UserModel user) async {
     await _firestoreService.updateUserData(user);
