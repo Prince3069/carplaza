@@ -1,52 +1,73 @@
-import 'package:flutter/material.dart';
+// AUTHENTICATION SERVICE
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-class AuthService extends ChangeNotifier {
+class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
-  // Fixed getter to properly return current user
-  User? get currentUser => _auth.currentUser;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   Future<User?> signUpWithEmailAndPassword(
-    String email,
-    String password,
-  ) async {
+      String email, String password) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      notifyListeners(); // Notify listeners when user changes
       return result.user;
     } catch (e) {
-      print("Error signing up: $e");
+      debugPrint("Sign Up Error: $e");
       return null;
     }
   }
 
   Future<User?> signInWithEmailAndPassword(
-    String email,
-    String password,
-  ) async {
+      String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      notifyListeners(); // Notify listeners when user changes
       return result.user;
     } catch (e) {
-      print("Error signing in: $e");
+      debugPrint("Sign In Error: $e");
+      return null;
+    }
+  }
+
+  Future<User?> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential result = await _auth.signInWithCredential(credential);
+      return result.user;
+    } catch (e) {
+      debugPrint("Google Sign In Error: $e");
       return null;
     }
   }
 
   Future<void> signOut() async {
     await _auth.signOut();
-    notifyListeners(); // Notify listeners when user signs out
+    await _googleSignIn.signOut();
   }
 
-  User? getCurrentUser() {
-    return _auth.currentUser;
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      debugPrint("Password Reset Error: $e");
+      rethrow;
+    }
   }
 }
