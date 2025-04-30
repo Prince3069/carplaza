@@ -36,8 +36,9 @@ class FirestoreService {
       query = query.where('isFeatured', isEqualTo: true);
     }
 
-    return query.snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => CarModel.fromMap(doc.data())).toList());
+    return query.snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => CarModel.fromMap(doc.data() as Map<String, dynamic>))
+        .toList());
   }
 
   Future<List<CarModel>> searchCars(String query) async {
@@ -47,7 +48,9 @@ class FirestoreService {
         .where('make', isLessThan: query + 'z')
         .get();
 
-    return snapshot.docs.map((doc) => CarModel.fromMap(doc.data())).toList();
+    return snapshot.docs
+        .map((doc) => CarModel.fromMap(doc.data() as Map<String, dynamic>))
+        .toList();
   }
 
   Future<String> addCar(CarModel car) async {
@@ -135,8 +138,9 @@ class FirestoreService {
         .where('participants', arrayContains: userId)
         .orderBy('lastMessageTime', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => ChatRoom.fromMap(doc.data())).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatRoom.fromMap(doc.data() as Map<String, dynamic>))
+            .toList());
   }
 
   Stream<List<Message>> getChatMessages(String chatId) {
@@ -146,8 +150,9 @@ class FirestoreService {
         .collection('messages')
         .orderBy('sentAt', descending: true)
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => Message.fromMap(doc.data())).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Message.fromMap(doc.data() as Map<String, dynamic>))
+            .toList());
   }
 
   Future<void> sendMessage({
