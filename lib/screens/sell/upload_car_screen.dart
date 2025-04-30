@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:car_plaza/models/car_model.dart';
 
 class UploadCarScreen extends StatefulWidget {
-  const UploadCarScreen({super.key});
+  const UploadCarScreen({super.key, required car, required user});
 
   @override
   State<UploadCarScreen> createState() => _UploadCarScreenState();

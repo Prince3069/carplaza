@@ -118,6 +118,7 @@ class CarDetailScreen extends StatelessWidget {
     super.key,
     required this.car,
     this.isOwnerView = false,
+    required category,
   });
 
   @override
@@ -202,8 +203,12 @@ class CarDetailScreen extends StatelessWidget {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        ChatScreen(sellerId: car.sellerId, carId: car.id),
+                    builder: (_) => ChatScreen(
+                      sellerId: car.sellerId,
+                      carId: car.id,
+                      savedCars: null,
+                      user: null,
+                    ),
                   ),
                 ),
                 child: const Text('Contact Seller'),

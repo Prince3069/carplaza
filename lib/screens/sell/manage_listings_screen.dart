@@ -27,7 +27,11 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const UploadCarScreen()),
+          MaterialPageRoute(
+              builder: (_) => const UploadCarScreen(
+                    car: null,
+                    user: null,
+                  )),
         ),
         child: const Icon(Icons.add),
       ),
@@ -60,7 +64,11 @@ class _ManageListingsScreenState extends State<ManageListingsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CarDetailScreen(car: car, isOwnerView: true),
+        builder: (_) => CarDetailScreen(
+          car: car,
+          isOwnerView: true,
+          category: null,
+        ),
       ),
     );
   }

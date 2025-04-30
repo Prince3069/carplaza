@@ -113,6 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _isLoading ? null : _login,
                 text: AppStrings.login,
                 isLoading: _isLoading,
+                color: Colors.cyan,
               ),
               const SizedBox(height: 16),
               const Center(child: Text(AppStrings.or)),
@@ -128,6 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 backgroundColor: Colors.white,
                 textColor: Colors.black87,
                 borderColor: Colors.grey.shade300,
+                color: Colors.cyan,
               ),
               const SizedBox(height: 16),
               Row(

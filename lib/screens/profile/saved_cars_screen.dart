@@ -37,7 +37,10 @@ class SavedCarsScreen extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => CarDetailScreen(car: car),
+            builder: (_) => CarDetailScreen(
+              car: car,
+              category: null,
+            ),
           ),
         ),
       ),
