@@ -1,150 +1,151 @@
+// LOGIN SCREEN
+import 'package:car_plaza/constants/strings.dart';
+import 'package:car_plaza/providers/auth_provider.dart';
+import 'package:car_plaza/utils/validators.dart';
+import 'package:car_plaza/widgets/custom_button.dart';
+import 'package:car_plaza/widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
-import 'package:car_plaza/services/auth_service.dart';
-import 'package:car_plaza/screens/auth/register_screen.dart';
-import 'package:car_plaza/screens/home/home_screen.dart';
-import 'package:car_plaza/screens/auth/forgot_password_screen.dart';
+import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
   bool _isLoading = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: <Widget>[
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(labelText: 'Email'),
-                validator: (value) {
-                  if (value == null || value.isEmpty || !value.contains('@')) {
-                    return 'Please enter a valid email address';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(labelText: 'Password'),
-                validator: (value) {
-                  if (value == null || value.isEmpty || value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ForgotPasswordScreen(),
-                      ),
-                    );
-                  },
-                  child: Text('Forgot Password?'),
-                ),
-              ),
-              SizedBox(height: 20),
-              _isLoading
-                  ? CircularProgressIndicator()
-                  : ElevatedButton(
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          setState(() {
-                            _isLoading = true;
-                          });
-
-                          try {
-                            final user =
-                                await _authService.signInWithEmailAndPassword(
-                              _emailController.text.trim(),
-                              _passwordController.text.trim(),
-                            );
-
-                            setState(() {
-                              _isLoading = false;
-                            });
-
-                            if (user != null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Login successful!')),
-                              );
-
-                              // Navigate to HomeScreen and replace the entire navigation stack
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(
-                                  builder: (context) => HomeScreen(),
-                                ),
-                                (Route<dynamic> route) => false,
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Login failed. Invalid credentials.'),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            setState(() {
-                              _isLoading = false;
-                            });
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error: ${e.toString()}'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                      ),
-                      child: Text('Login'),
-                    ),
-              SizedBox(height: 20),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RegisterScreen()),
-                  );
-                },
-                child: Text('Don\'t have an account? Register'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.signInWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: ${e.toString()}')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.signInWithGoogle();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google sign in failed: ${e.toString()}')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 32),
+              Text(
+                AppStrings.welcomeBack,
+                style: Theme.of(context).textTheme.headlineMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                AppStrings.loginToContinue,
+                style: Theme.of(context).textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
+              CustomTextField(
+                controller: _emailController,
+                labelText: AppStrings.email,
+                keyboardType: TextInputType.emailAddress,
+                validator: Validators.validateEmail,
+              ),
+              const SizedBox(height: 16),
+              CustomTextField(
+                controller: _passwordController,
+                labelText: AppStrings.password,
+                obscureText: true,
+                validator: Validators.validatePassword,
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/forgot-password');
+                  },
+                  child: const Text(AppStrings.forgotPassword),
+                ),
+              ),
+              const SizedBox(height: 24),
+              CustomButton(
+                onPressed: _isLoading ? null : _login,
+                text: AppStrings.login,
+                isLoading: _isLoading,
+              ),
+              const SizedBox(height: 16),
+              const Center(child: Text(AppStrings.or)),
+              const SizedBox(height: 16),
+              CustomButton(
+                onPressed: _isLoading ? null : _signInWithGoogle,
+                text: AppStrings.continueWithGoogle,
+                icon: Image.asset(
+                  'assets/images/google_logo.png',
+                  height: 24,
+                  width: 24,
+                ),
+                backgroundColor: Colors.white,
+                textColor: Colors.black87,
+                borderColor: Colors.grey.shade300,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(AppStrings.dontHaveAccount),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/register');
+                    },
+                    child: const Text(AppStrings.register),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
