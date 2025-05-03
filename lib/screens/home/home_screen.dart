@@ -105,11 +105,14 @@ class HomeScreen extends StatelessWidget {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Column(
                   children: [
-                    ShimmerCard(height: 120),
-                    SizedBox(height: 8),
-                    ShimmerCard(height: 120),
-                    SizedBox(height: 8),
-                    ShimmerCard(height: 120),
+                    ShimmerCard(
+                      height: 120,
+                      width: double.infinity,
+                    ),
+                    SizedBox(height: 8, width: double.infinity),
+                    ShimmerCard(height: 120, width: double.infinity),
+                    SizedBox(height: 8, width: double.infinity),
+                    ShimmerCard(height: 120, width: double.infinity),
                   ],
                 );
               }
