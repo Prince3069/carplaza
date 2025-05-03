@@ -60,13 +60,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 40),
                 Text(
                   'Create Account',
-                  style: Theme.of(context).textTheme.headline4,
+                  style: Theme.of(context).textTheme.headlineMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Fill in your details to get started',
-                  style: Theme.of(context).textTheme.subtitle1,
+                  style: Theme.of(context).textTheme.titleMedium,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
