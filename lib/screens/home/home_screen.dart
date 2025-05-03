@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import
+
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/screens/car_details/car_details_screen.dart';
 import 'package:car_plaza/services/firestore_service.dart';

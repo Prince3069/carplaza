@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:car_plaza/models/user_model.dart';
 import 'package:car_plaza/services/auth_service.dart';
 import 'package:car_plaza/services/firestore_service.dart';
 import 'package:car_plaza/services/storage_service.dart';
@@ -8,9 +5,10 @@ import 'package:car_plaza/widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({Key? key}) : super(key: key);
+  const EditProfileScreen({super.key});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -37,7 +35,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _loadUserData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = await authService.getCurrentUser();
-    if (user != null) {
+    if (user != null && mounted) {
       setState(() {
         _name = user.name;
         _phone = user.phone;
@@ -55,13 +53,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         maxHeight: 800,
         imageQuality: 85,
       );
-      if (pickedFile != null) {
+      if (pickedFile != null && mounted) {
         setState(() => _imageFile = pickedFile);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
     }
   }
 
@@ -69,7 +69,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     _formKey.currentState!.save();
-    setState(() => _isLoading = true);
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
@@ -89,7 +91,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       }
 
-      // Update user model
+      // Create updated user
       final updatedUser = currentUser.copyWith(
         name: _name,
         phone: _phone,
@@ -100,16 +102,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Update in Firestore
       await firestoreService.updateUser(updatedUser);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+        Navigator.pop(context);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile: $e')),
+        );
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -138,11 +143,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       onTap: _pickImage,
                       child: CircleAvatar(
                         radius: 50,
-                        backgroundImage: _imageFile != null
-                            ? FileImage(File(_imageFile!.path))
-                            : _photoUrl != null
-                                ? NetworkImage(_photoUrl!)
-                                : null,
+                        backgroundImage: _getProfileImage(),
                         child: _imageFile == null && _photoUrl == null
                             ? const Icon(Icons.camera_alt, size: 30)
                             : null,
@@ -181,5 +182,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
     );
+  }
+
+  ImageProvider<Object>? _getProfileImage() {
+    if (_imageFile != null) {
+      return FileImage(File(_imageFile!.path));
+    } else if (_photoUrl != null) {
+      return NetworkImage(_photoUrl!);
+    }
+    return null;
   }
 }
