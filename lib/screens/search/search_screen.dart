@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import, use_super_parameters, use_build_context_synchronously
+
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/screens/car_details/car_details_screen.dart';
 import 'package:car_plaza/services/firestore_service.dart';
@@ -270,7 +272,10 @@ class _SearchScreenState extends State<SearchScreen> {
       itemCount: 5,
       itemBuilder: (_, index) => const Padding(
         padding: EdgeInsets.only(bottom: 12),
-        child: ShimmerCard(height: 120),
+        child: ShimmerCard(
+          height: 120,
+          width: double.infinity,
+        ),
       ),
     );
   }
