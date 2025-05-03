@@ -154,6 +154,7 @@
 // ignore_for_file: unnecessary_cast
 
 import 'package:car_plaza/models/message_model.dart';
+import 'package:car_plaza/screens/messages/messages_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/models/user_model.dart';
@@ -371,4 +372,35 @@ class FirestoreService {
               );
             }).toList());
   }
+
+  // Stream<List<Conversation>> getUserConversations() {
+  //   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  //   if (currentUserId == null) return Stream.value([]);
+
+  //   return _firestore
+  //       .collection('conversations')
+  //       .where('participants', arrayContains: currentUserId)
+  //       .orderBy('lastMessageTime', descending: true)
+  //       .snapshots()
+  //       .map((snapshot) => snapshot.docs.map((doc) {
+  //             final data = doc.data() as Map<String, dynamic>;
+  //             final participants =
+  //                 List<String>.from(data['participants'] ?? []);
+  //             final otherUserId = participants.firstWhere(
+  //               (id) => id != currentUserId,
+  //               orElse: () => '',
+  //             );
+
+  //             return Conversation(
+  //               id: doc.id,
+  //               otherUserId: otherUserId,
+  //               otherUserName: data['otherUserName'] ?? 'Unknown',
+  //               otherUserPhotoUrl: data['otherUserPhotoUrl'],
+  //               lastMessage: data['lastMessage'] ?? '',
+  //               lastMessageTime:
+  //                   (data['lastMessageTime'] as Timestamp).toDate(),
+  //               unreadCount: data['unreadCount'] ?? 0,
+  //             );
+  //           }).toList());
+  // }
 }
