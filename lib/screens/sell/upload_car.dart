@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:car_plaza/models/car_model.dart';
+import 'package:car_plaza/services/auth_service.dart';
 import 'package:car_plaza/services/firestore_service.dart';
 import 'package:car_plaza/services/storage_service.dart';
 import 'package:car_plaza/widgets/custom_textfield.dart';
@@ -108,9 +111,9 @@ class _UploadCarScreenState extends State<UploadCarScreen> {
       // Upload images
       final imageUrls = await storageService.uploadCarImages(carId, _images);
 
-      // Update car with image URLs
-      final updatedCar = car.copyWith(id: carId, images: imageUrls);
-      await firestoreService.updateCar(updatedCar);
+      // // Update car with image URLs
+      // final updatedCar = car.copyWith(id: carId, images: imageUrls);
+      // await firestoreService.updateCar(updatedCar);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Car listed successfully!')),
