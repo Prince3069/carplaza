@@ -119,6 +119,9 @@ import 'package:car_plaza/utils/routes.dart';
 import 'package:car_plaza/widgets/shimmer_effect.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:car_plaza/models/conversation.dart';
+// ... other imports
+import 'package:car_plaza/models/conversation.dart';
 
 class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
@@ -143,9 +146,7 @@ class MessagesScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text('No messages yet'),
-            );
+            return const Center(child: Text('No conversations yet'));
           }
 
           return ListView.builder(
@@ -225,24 +226,4 @@ class MessagesScreen extends StatelessWidget {
       return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
     }
   }
-}
-
-class Conversation {
-  final String id;
-  final String otherUserId;
-  final String otherUserName;
-  final String? otherUserPhotoUrl;
-  final String lastMessage;
-  final DateTime lastMessageTime;
-  final int unreadCount;
-
-  Conversation({
-    required this.id,
-    required this.otherUserId,
-    required this.otherUserName,
-    this.otherUserPhotoUrl,
-    required this.lastMessage,
-    required this.lastMessageTime,
-    required this.unreadCount,
-  });
 }

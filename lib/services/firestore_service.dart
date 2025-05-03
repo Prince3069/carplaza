@@ -144,21 +144,20 @@
 //       query = query.where('fuelType', isEqualTo: fuelType);
 //     }
 
+// ignore_for_file: unnecessary_cast, unused_local_variable
+
 //     final snapshot = await query.get();
 //     return snapshot.docs
 //         .map((doc) => CarModel.fromMap(doc.data(), doc.id))
 //         .toList();
 //   }
 // }
-
-// ignore_for_file: unnecessary_cast
-
-import 'package:car_plaza/models/message_model.dart';
-import 'package:car_plaza/screens/messages/messages_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:car_plaza/models/car_model.dart';
+import 'package:car_plaza/models/conversation.dart';
+import 'package:car_plaza/models/message_model.dart';
 import 'package:car_plaza/models/user_model.dart';
 import 'package:car_plaza/utils/constants.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class FirestoreService {
@@ -314,7 +313,7 @@ class FirestoreService {
         .toList();
   }
 
-// Update the message methods to use MessageModel
+  // Message operations
   Stream<List<MessageModel>> getMessages(String receiverId) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return Stream.value([]);
@@ -338,6 +337,7 @@ class FirestoreService {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return;
 
+    // Add to messages collection
     await _firestore.collection(AppConstants.messagesCollection).add({
       'senderId': currentUserId,
       'receiverId': receiverId,
@@ -345,62 +345,61 @@ class FirestoreService {
       'timestamp': FieldValue.serverTimestamp(),
       'read': false,
     });
+
+    // Update or create conversation document
+    final conversationId = _generateConversationId(currentUserId, receiverId);
+    final userDoc = await getUser(currentUserId);
+    final receiverDoc = await getUser(receiverId);
+
+    await _firestore.collection('conversations').doc(conversationId).set({
+      'participants': [currentUserId, receiverId],
+      'lastMessage': text,
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'otherUserId': receiverId,
+      'otherUserName': receiverDoc?.name ?? 'Unknown',
+      'otherUserPhotoUrl': receiverDoc?.photoUrl,
+      'unreadCount': FieldValue.increment(1),
+    }, SetOptions(merge: true));
   }
 
-  Stream<List<MessageModel>> getUserConversations() {
+  Stream<List<Conversation>> getUserConversations() {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (currentUserId == null) return Stream.value([]);
 
     return _firestore
-        .collection(AppConstants.messagesCollection)
+        .collection('conversations')
         .where('participants', arrayContains: currentUserId)
         .orderBy('lastMessageTime', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return MessageModel.forConversation(
-                id: doc.id,
-                receiverId: data['receiverId'] == currentUserId
-                    ? data['senderId']
-                    : data['receiverId'],
-                receiverName: data['receiverName'] ?? 'Unknown',
-                lastMessage: data['lastMessage'] ?? '',
-                lastMessageTime:
-                    (data['lastMessageTime'] as Timestamp).toDate(),
-                unreadCount: data['unreadCount'] ?? 0,
-                receiverPhotoUrl: data['receiverPhotoUrl'],
-              );
-            }).toList());
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Conversation.fromFirestore(doc))
+            .toList());
   }
 
-  // Stream<List<Conversation>> getUserConversations() {
-  //   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-  //   if (currentUserId == null) return Stream.value([]);
+  String _generateConversationId(String userId1, String userId2) {
+    final ids = [userId1, userId2]..sort();
+    return '${ids[0]}_${ids[1]}';
+  }
 
-  //   return _firestore
-  //       .collection('conversations')
-  //       .where('participants', arrayContains: currentUserId)
-  //       .orderBy('lastMessageTime', descending: true)
-  //       .snapshots()
-  //       .map((snapshot) => snapshot.docs.map((doc) {
-  //             final data = doc.data() as Map<String, dynamic>;
-  //             final participants =
-  //                 List<String>.from(data['participants'] ?? []);
-  //             final otherUserId = participants.firstWhere(
-  //               (id) => id != currentUserId,
-  //               orElse: () => '',
-  //             );
+  Future<void> markMessagesAsRead(
+      String conversationId, String otherUserId) async {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) return;
 
-  //             return Conversation(
-  //               id: doc.id,
-  //               otherUserId: otherUserId,
-  //               otherUserName: data['otherUserName'] ?? 'Unknown',
-  //               otherUserPhotoUrl: data['otherUserPhotoUrl'],
-  //               lastMessage: data['lastMessage'] ?? '',
-  //               lastMessageTime:
-  //                   (data['lastMessageTime'] as Timestamp).toDate(),
-  //               unreadCount: data['unreadCount'] ?? 0,
-  //             );
-  //           }).toList());
-  // }
+    await _firestore.collection('conversations').doc(conversationId).update({
+      'unreadCount': 0,
+    });
+
+    // Optionally mark individual messages as read
+    final query = await _firestore
+        .collection(AppConstants.messagesCollection)
+        .where('senderId', isEqualTo: otherUserId)
+        .where('receiverId', isEqualTo: currentUserId)
+        .where('read', isEqualTo: false)
+        .get();
+
+    for (final doc in query.docs) {
+      await doc.reference.update({'read': true});
+    }
+  }
 }
