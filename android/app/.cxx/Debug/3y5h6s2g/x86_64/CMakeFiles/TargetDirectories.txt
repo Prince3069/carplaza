@@ -1,0 +1,2 @@
+C:/Users/princ/Desktop/projects/carplaza/android/app/.cxx/Debug/3y5h6s2g/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/princ/Desktop/projects/carplaza/android/app/.cxx/Debug/3y5h6s2g/x86_64/CMakeFiles/rebuild_cache.dir
