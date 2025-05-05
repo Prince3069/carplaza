@@ -510,6 +510,61 @@ class FirestoreService {
     }
   }
 
+  /// 🔍 NEW: Search Cars with Multiple Filters
+  Future<List<CarModel>> searchCars({
+    String? brand,
+    String? model,
+    int? minYear,
+    int? maxYear,
+    double? minPrice,
+    double? maxPrice,
+    String? location,
+    String? transmission,
+    String? fuelType,
+  }) async {
+    try {
+      Query query = _firestore
+          .collection(AppConstants.carsCollection)
+          .where('isSold', isEqualTo: false);
+
+      if (brand != null && brand.isNotEmpty) {
+        query = query.where('brand', isEqualTo: brand);
+      }
+      if (model != null && model.isNotEmpty) {
+        query = query.where('model', isEqualTo: model);
+      }
+      if (location != null && location.isNotEmpty) {
+        query = query.where('location', isEqualTo: location);
+      }
+      if (transmission != null && transmission.isNotEmpty) {
+        query = query.where('transmission', isEqualTo: transmission);
+      }
+      if (fuelType != null && fuelType.isNotEmpty) {
+        query = query.where('fuelType', isEqualTo: fuelType);
+      }
+
+      final snapshot = await query.get();
+
+      final cars = snapshot.docs
+          .map((doc) =>
+              CarModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+
+      return cars.where((car) {
+        final year = int.tryParse(car.year.toString()) ?? 0;
+        final price = car.price ?? 0.0;
+
+        final matchesYear = (minYear == null || year >= minYear) &&
+            (maxYear == null || year <= maxYear);
+        final matchesPrice = (minPrice == null || price >= minPrice) &&
+            (maxPrice == null || price <= maxPrice);
+        return matchesYear && matchesPrice;
+      }).toList();
+    } catch (e) {
+      throw Exception('Failed to search cars: $e');
+    }
+  }
+
   Stream<List<CarModel>> getFeaturedCars() {
     return _firestore
         .collection(AppConstants.carsCollection)

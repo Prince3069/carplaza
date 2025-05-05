@@ -42,7 +42,7 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       final firestoreService =
           Provider.of<FirestoreService>(context, listen: false);
-      final results = await firestoreService.searc(
+      final results = await firestoreService.searchCars(
         brand: _selectedBrand,
         model: _selectedModel,
         minYear: _minYear,
