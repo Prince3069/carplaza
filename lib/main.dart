@@ -1,3 +1,6 @@
+import 'package:car_plaza/providers/auth_provider.dart';
+import 'package:car_plaza/providers/chat_provider.dart';
+import 'package:car_plaza/providers/saved_cars_provider.dart';
 import 'package:car_plaza/utils/theme.dart';
 import 'package:car_plaza/screens/auth/login_screen.dart';
 import 'package:car_plaza/screens/onboarding/onboarding_screen.dart';
@@ -10,14 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(
-    MultiProvider(
-      providers: [
-        // Add your providers here
-      ],
-      child: const MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatefulWidget {
