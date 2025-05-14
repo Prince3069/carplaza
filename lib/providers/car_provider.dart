@@ -91,6 +91,22 @@ class CarProvider with ChangeNotifier {
     }
   }
 
+// Add this method to your CarProvider class
+  Future<void> fetchAllCars() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final snapshot = await _firebaseService.fetchAllCars();
+      _recentCars = snapshot;
+      _filteredCars = _recentCars;
+    } catch (e) {
+      debugPrint('Error fetching all cars: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> removeImage(dynamic image) async {
     if (image is XFile) {
       _carImages.removeWhere((file) => file.path == image.path);
