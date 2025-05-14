@@ -3,7 +3,7 @@
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/screens/car_details/car_details_screen.dart';
 import 'package:car_plaza/services/firestore_service.dart';
-import 'package:car_plaza/utils/routes.dart';
+import 'package:car_plaza/routes.dart';
 import 'package:car_plaza/widgets/car_card.dart';
 import 'package:car_plaza/widgets/shimmer_effect.dart';
 import 'package:flutter/material.dart';

@@ -1,4 +1,4 @@
-import 'package:car_plaza/utils/routes.dart';
+import 'package:car_plaza/routes.dart';
 import 'package:flutter/material.dart';
 
 class SellScreen extends StatelessWidget {

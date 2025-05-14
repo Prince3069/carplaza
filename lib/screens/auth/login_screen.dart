@@ -1,5 +1,5 @@
 import 'package:car_plaza/providers/auth_provider.dart';
-import 'package:car_plaza/utils/routes.dart';
+import 'package:car_plaza/routes.dart';
 import 'package:car_plaza/widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

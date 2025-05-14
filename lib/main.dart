@@ -2,7 +2,7 @@ import 'package:car_plaza/providers/auth_provider.dart';
 import 'package:car_plaza/providers/car_provider.dart';
 import 'package:car_plaza/services/auth_service.dart';
 import 'package:car_plaza/services/firestore_service.dart';
-import 'package:car_plaza/utils/routes.dart';
+import 'package:car_plaza/routes.dart';
 import 'package:car_plaza/utils/theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
