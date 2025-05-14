@@ -1,140 +1,93 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:car_plaza/providers/car_provider.dart';
-import 'package:car_plaza/utils/responsive.dart';
-import 'package:car_plaza/widgets/adaptive/app_navigation.dart';
-import 'package:car_plaza/widgets/car_card.dart';
-import 'package:car_plaza/widgets/search_filter.dart';
+import 'package:car_plaza/widgets/responsive_layout.dart';
 
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends StatelessWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  Widget build(BuildContext context) {
+    return ResponsiveLayout(
+      mobileBody: SearchContent(),
+      tabletBody: SearchContent(),
+      desktopBody: SearchContent(),
+    );
+  }
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class SearchContent extends StatefulWidget {
+  @override
+  _SearchContentState createState() => _SearchContentState();
+}
+
+class _SearchContentState extends State<SearchContent> {
   final TextEditingController _searchController = TextEditingController();
-  bool _showFilters = false;
-  int _selectedIndex = 1; // Search tab index
-  Map<String, dynamic> _currentFilters = {};
+  String _searchQuery = '';
 
   @override
-  void initState() {
-    super.initState();
-    final carProvider = Provider.of<CarProvider>(context, listen: false);
-    carProvider.fetchAllCars();
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search for cars...',
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: () {
+                  setState(() {
+                    _searchQuery = _searchController.text;
+                  });
+                },
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onSubmitted: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: _buildSearchResults(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchResults() {
+    // In a real app, you would query Firestore with the search query
+    if (_searchQuery.isEmpty) {
+      return const Center(
+        child: Text('Enter a search term to find cars'),
+      );
+    }
+
+    // Mock search results - replace with actual Firestore query
+    return ListView(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.car_rental),
+          title: Text('Toyota Camry - $_searchQuery'),
+          subtitle: const Text('₦5,000,000 - Lagos'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.car_rental),
+          title: Text('Honda Accord - $_searchQuery'),
+          subtitle: const Text('₦4,500,000 - Abuja'),
+        ),
+      ],
+    );
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _handleSearch(String query) {
-    final carProvider = Provider.of<CarProvider>(context, listen: false);
-    carProvider.searchCars(query);
-  }
-
-  void _handleFilterChanged(Map<String, dynamic> filters) {
-    setState(() {
-      _currentFilters = filters;
-      _showFilters = false;
-    });
-    // Implement actual filtering logic here
-    final carProvider = Provider.of<CarProvider>(context, listen: false);
-    carProvider.applyFilters(filters);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final responsive = Responsive.of(context);
-    final carProvider = Provider.of<CarProvider>(context);
-    final isDesktop = responsive.isDesktop;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search for cars...',
-            border: InputBorder.none,
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () => _handleSearch(_searchController.text),
-            ),
-          ),
-          onSubmitted: _handleSearch,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              setState(() => _showFilters = !_showFilters);
-            },
-          ),
-        ],
-      ),
-      body: Row(
-        children: [
-          if (isDesktop)
-            AppNavigation(
-              selectedIndex: _selectedIndex,
-              onItemTapped: (index) {
-                setState(() => _selectedIndex = index);
-                // Handle navigation
-              },
-            ),
-          Expanded(
-            child: Column(
-              children: [
-                if (_showFilters)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: SearchFilter(
-                      onFilterChanged: _handleFilterChanged,
-                    ),
-                  ),
-                Expanded(
-                  child: carProvider.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : carProvider.filteredCars.isEmpty
-                          ? const Center(child: Text('No cars found'))
-                          : GridView.builder(
-                              padding: EdgeInsets.all(responsive.wp(3)),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: responsive.isDesktop
-                                    ? 4
-                                    : responsive.isTablet
-                                        ? 3
-                                        : 2,
-                                crossAxisSpacing: 15,
-                                mainAxisSpacing: 15,
-                                childAspectRatio: 0.8,
-                              ),
-                              itemCount: carProvider.filteredCars.length,
-                              itemBuilder: (context, index) {
-                                final car = carProvider.filteredCars[index];
-                                return CarCard(car: car);
-                              },
-                            ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: !isDesktop
-          ? AppNavigation(
-              selectedIndex: _selectedIndex,
-              onItemTapped: (index) {
-                setState(() => _selectedIndex = index);
-                // Handle navigation
-              },
-            )
-          : null,
-    );
   }
 }
