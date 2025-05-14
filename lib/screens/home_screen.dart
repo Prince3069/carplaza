@@ -1,3 +1,4 @@
+import 'package:car_plaza/widgets/loading_shimmer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/widgets/adaptive/app_navigation.dart';

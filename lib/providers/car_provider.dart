@@ -49,6 +49,20 @@ class CarProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fetchAllCars() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      _recentCars = await _firebaseService.fetchAllCars();
+      _filteredCars = _recentCars;
+    } catch (e) {
+      debugPrint('Error fetching all cars: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> searchCars(String query) async {
     if (query.isEmpty) {
       _filteredCars = _recentCars;
@@ -64,6 +78,56 @@ class CarProvider with ChangeNotifier {
       debugPrint('Error searching cars: $e');
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void applyFilters(Map<String, dynamic> filters) {
+    try {
+      _filteredCars = _recentCars.where((car) {
+        // Brand filter
+        if (filters['brand'] != null &&
+            filters['brand'].isNotEmpty &&
+            !car.brand.toLowerCase().contains(filters['brand'].toLowerCase())) {
+          return false;
+        }
+
+        // Model filter
+        if (filters['model'] != null &&
+            filters['model'].isNotEmpty &&
+            !car.model.toLowerCase().contains(filters['model'].toLowerCase())) {
+          return false;
+        }
+
+        // Price range filter
+        if (filters['minPrice'] != null && car.price < filters['minPrice']) {
+          return false;
+        }
+        if (filters['maxPrice'] != null && car.price > filters['maxPrice']) {
+          return false;
+        }
+
+        // Year range filter
+        if (car.year < filters['minYear'] || car.year > filters['maxYear']) {
+          return false;
+        }
+
+        // Location filter
+        if (filters['location'] != null &&
+            filters['location'].isNotEmpty &&
+            !car.location
+                .toLowerCase()
+                .contains(filters['location'].toLowerCase())) {
+          return false;
+        }
+
+        return true;
+      }).toList();
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error applying filters: $e');
+      _filteredCars = _recentCars;
       notifyListeners();
     }
   }
@@ -91,39 +155,26 @@ class CarProvider with ChangeNotifier {
     }
   }
 
-// Add this method to your CarProvider class
-  Future<void> fetchAllCars() async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      final snapshot = await _firebaseService.fetchAllCars();
-      _recentCars = snapshot;
-      _filteredCars = _recentCars;
-    } catch (e) {
-      debugPrint('Error fetching all cars: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
   Future<void> removeImage(dynamic image) async {
-    if (image is XFile) {
-      _carImages.removeWhere((file) => file.path == image.path);
-    } else if (image is Uint8List) {
-      // Create a list to store files to keep
-      final filesToKeep = <XFile>[];
+    try {
+      if (image is XFile) {
+        _carImages.removeWhere((file) => file.path == image.path);
+      } else if (image is Uint8List) {
+        final filesToKeep = <XFile>[];
 
-      for (final file in _carImages) {
-        final bytes = await file.readAsBytes();
-        if (bytes != image) {
-          filesToKeep.add(file);
+        for (final file in _carImages) {
+          final bytes = await file.readAsBytes();
+          if (bytes != image) {
+            filesToKeep.add(file);
+          }
         }
-      }
 
-      _carImages = filesToKeep;
+        _carImages = filesToKeep;
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error removing image: $e');
     }
-    notifyListeners();
   }
 
   Future<void> uploadCar({
@@ -142,11 +193,16 @@ class CarProvider with ChangeNotifier {
       // Upload images first
       final imageUrls = <String>[];
       for (final image in _carImages) {
-        final url = await _firebaseService.uploadImage(
-          '${DateTime.now().millisecondsSinceEpoch}_${image.name}',
-          await image.readAsBytes(),
-        );
-        imageUrls.add(url);
+        try {
+          final url = await _firebaseService.uploadImage(
+            '${DateTime.now().millisecondsSinceEpoch}_${image.name}',
+            await image.readAsBytes(),
+          );
+          imageUrls.add(url);
+        } catch (e) {
+          debugPrint('Error uploading image ${image.name}: $e');
+          rethrow;
+        }
       }
 
       // Then upload car data

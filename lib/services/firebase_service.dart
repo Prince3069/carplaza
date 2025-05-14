@@ -8,6 +8,19 @@ class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
+// Add this method to fetch all cars
+  Future<List<Car>> fetchAllCars() async {
+    try {
+      final snapshot = await _firestore
+          .collection('cars')
+          .orderBy('createdAt', descending: true)
+          .get();
+      return snapshot.docs.map((doc) => Car.fromFirestore(doc)).toList();
+    } catch (e) {
+      throw Exception('Failed to fetch all cars: $e');
+    }
+  }
+
   // Upload car to Firestore
   Future<void> uploadCar({
     required String title,
