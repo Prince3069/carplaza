@@ -1,130 +1,45 @@
-// class UserModel {
-//   final String id;
-//   final String name;
-//   final String email;
-//   final String? phone;
-//   final String? photoUrl;
-//   final String? location;
-//   final DateTime joinedAt;
-//   final bool isSeller;
-//   final List<String>? savedCars;
-//   final String? paymentMethod;
-
-//   UserModel({
-//     required this.id,
-//     required this.name,
-//     required this.email,
-//     this.phone,
-//     this.photoUrl,
-//     this.location,
-//     required this.joinedAt,
-//     this.isSeller = false,
-//     this.savedCars,
-//     this.paymentMethod,
-//   });
-
-//   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
-//     return UserModel(
-//       id: id,
-//       name: map['name'] ?? '',
-//       email: map['email'] ?? '',
-//       phone: map['phone'],
-//       photoUrl: map['photoUrl'],
-//       location: map['location'],
-//       joinedAt: map['joinedAt']?.toDate() ?? DateTime.now(),
-//       isSeller: map['isSeller'] ?? false,
-//       savedCars: List<String>.from(map['savedCars'] ?? []),
-//       paymentMethod: map['paymentMethod'],
-//     );
-//   }
-
-//   Map<String, dynamic> toMap() {
-//     return {
-//       'name': name,
-//       'email': email,
-//       'phone': phone,
-//       'photoUrl': photoUrl,
-//       'location': location,
-//       'joinedAt': joinedAt,
-//       'isSeller': isSeller,
-//       'savedCars': savedCars,
-//       'paymentMethod': paymentMethod,
-//     };
-//   }
-// }
-
 class UserModel {
   final String id;
   final String name;
   final String email;
-  final String? phone;
+  final String phone;
   final String? photoUrl;
-  final String? location;
-  final DateTime joinedAt;
-  final bool isSeller;
-  final List<String>? savedCars;
-  final String? paymentMethod;
+  final bool isVerifiedSeller;
+  final DateTime joinedDate;
 
   UserModel({
     required this.id,
     required this.name,
     required this.email,
-    this.phone,
+    required this.phone,
     this.photoUrl,
-    this.location,
-    required this.joinedAt,
-    this.isSeller = false,
-    this.savedCars,
-    this.paymentMethod,
+    this.isVerifiedSeller = false,
+    required this.joinedDate,
   });
 
-  // Add the copyWith method here
-  UserModel copyWith({
-    String? name,
-    String? phone,
-    String? location,
-    String? photoUrl,
-  }) {
-    return UserModel(
-      id: id,
-      name: name ?? this.name,
-      email: email,
-      phone: phone ?? this.phone,
-      photoUrl: photoUrl ?? this.photoUrl,
-      location: location ?? this.location,
-      joinedAt: joinedAt,
-      isSeller: isSeller,
-      savedCars: savedCars,
-      paymentMethod: paymentMethod,
-    );
-  }
-
-  factory UserModel.fromMap(Map<String, dynamic> map, String id) {
-    return UserModel(
-      id: id,
-      name: map['name'] ?? '',
-      email: map['email'] ?? '',
-      phone: map['phone'],
-      photoUrl: map['photoUrl'],
-      location: map['location'],
-      joinedAt: map['joinedAt']?.toDate() ?? DateTime.now(),
-      isSeller: map['isSeller'] ?? false,
-      savedCars: List<String>.from(map['savedCars'] ?? []),
-      paymentMethod: map['paymentMethod'],
-    );
-  }
-
+  // Convert User to Map
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'name': name,
       'email': email,
       'phone': phone,
       'photoUrl': photoUrl,
-      'location': location,
-      'joinedAt': joinedAt,
-      'isSeller': isSeller,
-      'savedCars': savedCars,
-      'paymentMethod': paymentMethod,
+      'isVerifiedSeller': isVerifiedSeller,
+      'joinedDate': joinedDate.toIso8601String(),
     };
+  }
+
+  // Create User from Map
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      id: map['id'],
+      name: map['name'],
+      email: map['email'],
+      phone: map['phone'],
+      photoUrl: map['photoUrl'],
+      isVerifiedSeller: map['isVerifiedSeller'] ?? false,
+      joinedDate: DateTime.parse(map['joinedDate']),
+    );
   }
 }
