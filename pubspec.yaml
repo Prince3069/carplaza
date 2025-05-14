@@ -11,10 +11,10 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.6
   provider: ^6.1.1
-  firebase_core: ^2.15.1
-  cloud_firestore: ^4.9.1
-  firebase_storage: ^11.3.0
-  firebase_auth: ^4.9.0
+  firebase_core: ^2.18.0
+  cloud_firestore: ^4.11.1
+  firebase_storage: ^11.6.0
+  firebase_auth: ^4.11.1
   firebase_analytics: ^10.4.3
   image_picker: ^0.8.8
   cached_network_image: ^3.3.0
@@ -28,7 +28,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   connectivity_plus: ^4.0.1
-  fluttertoast: ^8.2.2
+  fluttertoast: ^8.2.1
   uuid: ^3.0.7
   flutter_animate: ^4.5.2
 
