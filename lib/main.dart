@@ -1,3 +1,5 @@
+import 'package:car_plaza/constants/app_colors.dart';
+import 'package:car_plaza/services/device_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';

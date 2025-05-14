@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:car_plaza/services/firebase_service.dart';
 import 'package:car_plaza/models/car_model.dart';
+import 'dart:typed_data';
 
 class CarProvider with ChangeNotifier {
   final FirebaseService _firebaseService = FirebaseService();
@@ -17,8 +18,7 @@ class CarProvider with ChangeNotifier {
   List<Car> get featuredCars => _featuredCars;
   List<Car> get recentCars => _recentCars;
   List<Car> get filteredCars => _filteredCars;
-  List<Uint8List> get carImages =>
-      _carImages.map((file) => file.readAsBytesSync()).toList();
+  List<XFile> get carImages => _carImages;
   bool get isLoading => _isLoading;
   bool get isUploading => _isUploading;
 
@@ -77,16 +77,36 @@ class CarProvider with ChangeNotifier {
       );
 
       if (pickedFiles != null) {
-        _carImages.addAll(pickedFiles);
-        notifyListeners();
+        final remainingSlots = 10 - _carImages.length;
+        if (remainingSlots > 0) {
+          final filesToAdd = pickedFiles.length > remainingSlots
+              ? pickedFiles.sublist(0, remainingSlots)
+              : pickedFiles;
+          _carImages.addAll(filesToAdd);
+          notifyListeners();
+        }
       }
     } catch (e) {
       debugPrint('Error picking images: $e');
     }
   }
 
-  void removeImage(Uint8List image) {
-    _carImages.removeWhere((file) => file.readAsBytesSync() == image);
+  Future<void> removeImage(dynamic image) async {
+    if (image is XFile) {
+      _carImages.removeWhere((file) => file.path == image.path);
+    } else if (image is Uint8List) {
+      // Create a list to store files to keep
+      final filesToKeep = <XFile>[];
+
+      for (final file in _carImages) {
+        final bytes = await file.readAsBytes();
+        if (bytes != image) {
+          filesToKeep.add(file);
+        }
+      }
+
+      _carImages = filesToKeep;
+    }
     notifyListeners();
   }
 

@@ -1,48 +1,23 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1E88E5">
+  <meta name="description" content="Car Plaza - Nigeria's Premier Car Marketplace">
   <title>Car Plaza</title>
   <link rel="manifest" href="manifest.json">
-<body>
-<script src="main.dart.js" type="application/javascript"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-messaging-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js"></script>
-
-<script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('flutter_service_worker.js');
+      });
+    }
   const firebaseConfig = {
       apiKey: "AIzaSyCNfC3g5gIVzSxcUe_BPFiNf61E8EhdimU",
       authDomain: "car-plaza-b9689.firebaseapp.com",
@@ -52,16 +27,11 @@
       appId: "1:74696492122:web:77c2a16681317df6c88463",
       measurementId: "G-453PDQ8XBR"
     };
-  firebase.initializeApp(firebaseConfig);
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js')
-        .then(registration => {
-          firebase.messaging().useServiceWorker(registration);
-        });
-    });
-  }
-</script>
-
+   
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body>
+  <script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>

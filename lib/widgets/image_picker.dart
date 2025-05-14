@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/providers/car_provider.dart';
 import 'package:car_plaza/utils/responsive.dart';
+import 'package:image_picker/image_picker.dart';
 
 class CarImagePicker extends StatelessWidget {
   const CarImagePicker({super.key});
@@ -19,39 +22,57 @@ class CarImagePicker extends StatelessWidget {
           runSpacing: 10,
           children: [
             ...carProvider.carImages.map((image) {
-              return Stack(
-                children: [
-                  Container(
-                    width: responsive.wp(20),
-                    height: responsive.wp(20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      image: DecorationImage(
-                        image: MemoryImage(image),
-                        fit: BoxFit.cover,
+              return FutureBuilder<Uint8List>(
+                future: image.readAsBytes(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Container(
+                      width: responsive.wp(20),
+                      height: responsive.wp(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 5,
-                    right: 5,
-                    child: GestureDetector(
-                      onTap: () => carProvider.removeImage(image),
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 14,
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final bytes = snapshot.data ?? Uint8List(0);
+                  return Stack(
+                    children: [
+                      Container(
+                        width: responsive.wp(20),
+                        height: responsive.wp(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          image: DecorationImage(
+                            image: MemoryImage(bytes),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                      Positioned(
+                        top: 5,
+                        right: 5,
+                        child: GestureDetector(
+                          onTap: () => carProvider.removeImage(image),
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               );
             }).toList(),
             if (carProvider.carImages.length < 10)
