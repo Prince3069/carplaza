@@ -8,7 +8,7 @@ void main() {
   testWidgets('App starts and shows onboarding screen',
       (WidgetTester tester) async {
     // Build the app
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const CarPlazaApp());
 
     // Wait for animations/frame builds
     await tester.pumpAndSettle();

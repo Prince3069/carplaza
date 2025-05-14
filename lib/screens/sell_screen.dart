@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:car_plaza/widgets/app_bottom_nav.dart';
-import 'package:car_plaza/widgets/image_picker.dart';
 import 'package:car_plaza/providers/car_provider.dart';
 import 'package:car_plaza/utils/responsive.dart';
 import 'package:car_plaza/utils/validators.dart';
+import 'package:car_plaza/widgets/adaptive/app_navigation.dart';
+import 'package:car_plaza/widgets/image_picker.dart';
 
 class SellScreen extends StatefulWidget {
   const SellScreen({super.key});
@@ -62,6 +62,7 @@ class _SellScreenState extends State<SellScreen> {
   Widget build(BuildContext context) {
     final responsive = Responsive.of(context);
     final carProvider = Provider.of<CarProvider>(context);
+    final isDesktop = responsive.isDesktop;
 
     return Scaffold(
       appBar: AppBar(
@@ -177,7 +178,14 @@ class _SellScreenState extends State<SellScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(selectedIndex: 2),
+      bottomNavigationBar: !isDesktop
+          ? AppNavigation(
+              selectedIndex: 2, // Sell tab index
+              onItemTapped: (index) {
+                // Handle navigation
+              },
+            )
+          : null,
     );
   }
 }
