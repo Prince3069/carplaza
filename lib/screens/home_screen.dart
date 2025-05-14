@@ -1,146 +1,95 @@
-import 'package:car_plaza/widgets/loading_shimmer.dart';
+import 'package:car_plaza/models/car_model.dart';
+import 'package:car_plaza/screens/search_screen.dart';
+import 'package:car_plaza/screens/sell_screen.dart';
+import 'package:car_plaza/screens/messages_screen.dart';
+import 'package:car_plaza/screens/profile_screen.dart';
+import 'package:car_plaza/widgets/bottom_nav_bar.dart';
+import 'package:car_plaza/widgets/car_item.dart';
+import 'package:car_plaza/widgets/responsive_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:car_plaza/widgets/adaptive/app_navigation.dart';
-import 'package:car_plaza/widgets/featured_carousel.dart';
-import 'package:car_plaza/widgets/car_card.dart';
-import 'package:car_plaza/providers/car_provider.dart';
-import 'package:car_plaza/utils/responsive.dart';
+import 'package:car_plaza/services/database_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    final carProvider = Provider.of<CarProvider>(context, listen: false);
-    await Future.wait([
-      carProvider.fetchFeaturedCars(),
-      carProvider.fetchRecentCars(),
-    ]);
-  }
+  final List<Widget> _screens = [
+    const HomeContent(),
+    const SearchScreen(),
+    const SellScreen(),
+    const MessagesScreen(),
+    const ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final responsive = Responsive.of(context);
-    final carProvider = Provider.of<CarProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Car Plaza'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => Navigator.pushNamed(context, '/search'),
-          ),
-          if (responsive.isDesktop)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, '/sell'),
-                icon: const Icon(Icons.add),
-                label: const Text('Sell Car'),
-              ),
-            ),
-        ],
+        centerTitle: true,
       ),
-      body: Row(
-        children: [
-          if (responsive.isDesktop)
-            AppNavigation(
-              selectedIndex: _currentIndex,
-              onItemTapped: (index) {
-                setState(() => _currentIndex = index);
-                // Add navigation logic here
-              },
-            ),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: responsive.wp(5),
-                    vertical: responsive.hp(2),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (carProvider.featuredCars.isNotEmpty) ...[
-                        Text(
-                          'Featured Cars',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        SizedBox(height: responsive.hp(2)),
-                        const FeaturedCarousel(),
-                        SizedBox(height: responsive.hp(3)),
-                      ],
-                      Text(
-                        'Recently Added',
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      SizedBox(height: responsive.hp(2)),
-                      carProvider.isLoading
-                          ? const LoadingShimmer()
-                          : GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: responsive.gridColumnCount,
-                                crossAxisSpacing: 15,
-                                mainAxisSpacing: 15,
-                                childAspectRatio:
-                                    responsive.isMobile ? 0.75 : 0.9,
-                              ),
-                              itemCount: carProvider.recentCars.length,
-                              itemBuilder: (context, index) {
-                                final car = carProvider.recentCars[index];
-                                return CarCard(car: car);
-                              },
-                            ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+      body: ResponsiveLayout(
+        mobileBody: _screens[_currentIndex],
+        tabletBody: _screens[_currentIndex],
+        desktopBody: _screens[_currentIndex],
       ),
-      floatingActionButton: responsive.isMobile
-          ? FloatingActionButton(
-              onPressed: () => Navigator.pushNamed(context, '/sell'),
-              child: const Icon(Icons.add),
-            )
-          : null,
-      bottomNavigationBar: !responsive.isDesktop
-          ? AppNavigation(
-              selectedIndex: _currentIndex,
-              onItemTapped: (index) {
-                setState(() => _currentIndex = index);
-                // Add navigation logic here
-              },
-            )
-          : null,
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+      ),
+    );
+  }
+}
+
+class HomeContent extends StatelessWidget {
+  const HomeContent({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final database = Provider.of<DatabaseService>(context);
+
+    return StreamBuilder<List<Car>>(
+      stream: database.cars,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        List<Car> cars = snapshot.data ?? [];
+
+        if (cars.isEmpty) {
+          return const Center(child: Text('No cars available'));
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(8),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.8,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: cars.length,
+          itemBuilder: (context, index) {
+            return CarItem(car: cars[index]);
+          },
+        );
+      },
     );
   }
 }
