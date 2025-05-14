@@ -1,60 +1,80 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Car {
-  final String id;
+  final String? id;
   final String title;
   final String description;
   final double price;
+  final String location;
   final String brand;
   final String model;
   final int year;
-  final String location;
-  final List<String> imageUrls;
-  final DateTime createdAt;
-  final bool isFeatured;
-  final int views;
+  final String condition;
+  final String transmission;
+  final String fuelType;
+  final String mileage;
+  final List<String> images;
+  final String sellerId;
+  final DateTime postedDate;
+  final bool isVerified;
 
   Car({
-    required this.id,
+    this.id,
     required this.title,
     required this.description,
     required this.price,
+    required this.location,
     required this.brand,
     required this.model,
     required this.year,
-    required this.location,
-    required this.imageUrls,
-    required this.createdAt,
-    this.isFeatured = false,
-    this.views = 0,
+    required this.condition,
+    required this.transmission,
+    required this.fuelType,
+    required this.mileage,
+    required this.images,
+    required this.sellerId,
+    required this.postedDate,
+    this.isVerified = false,
   });
 
-  factory Car.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  // Convert Car to Map
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'price': price,
+      'location': location,
+      'brand': brand,
+      'model': model,
+      'year': year,
+      'condition': condition,
+      'transmission': transmission,
+      'fuelType': fuelType,
+      'mileage': mileage,
+      'images': images,
+      'sellerId': sellerId,
+      'postedDate': postedDate.toIso8601String(),
+      'isVerified': isVerified,
+    };
+  }
+
+  // Create Car from Map
+  factory Car.fromMap(String id, Map<String, dynamic> map) {
     return Car(
-      id: doc.id,
-      title: data['title'] ?? '',
-      description: data['description'] ?? '',
-      price: (data['price'] ?? 0).toDouble(),
-      brand: data['brand'] ?? '',
-      model: data['model'] ?? '',
-      year: data['year'] ?? 0,
-      location: data['location'] ?? '',
-      imageUrls: List<String>.from(data['imageUrls'] ?? []),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      isFeatured: data['isFeatured'] ?? false,
-      views: data['views'] ?? 0,
+      id: id,
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      price: map['price']?.toDouble() ?? 0.0,
+      location: map['location'] ?? '',
+      brand: map['brand'] ?? '',
+      model: map['model'] ?? '',
+      year: map['year']?.toInt() ?? 0,
+      condition: map['condition'] ?? '',
+      transmission: map['transmission'] ?? '',
+      fuelType: map['fuelType'] ?? '',
+      mileage: map['mileage'] ?? '',
+      images: List<String>.from(map['images'] ?? []),
+      sellerId: map['sellerId'] ?? '',
+      postedDate: DateTime.parse(map['postedDate']),
+      isVerified: map['isVerified'] ?? false,
     );
-  }
-
-  String get formattedPrice {
-    return '₦${price.toStringAsFixed(2).replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        )}';
-  }
-
-  String get yearAndLocation {
-    return '$year • $location';
   }
 }
