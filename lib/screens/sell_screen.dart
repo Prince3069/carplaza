@@ -96,7 +96,11 @@ class _SellScreenState extends State<SellScreen> {
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Price (₦)*'),
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Required' : null,
+                validator: (value) {
+                  if (value!.isEmpty) return 'Required';
+                  if (double.tryParse(value) == null) return 'Invalid number';
+                  return null;
+                },
                 onSaved: (value) => _price = double.parse(value!),
               ),
               const SizedBox(height: 10),
@@ -199,7 +203,14 @@ class _SellScreenState extends State<SellScreen> {
                     ? null
                     : () => _submitForm(database, user?.uid),
                 child: _isUploading
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: Colors.white),
+                          SizedBox(width: 10),
+                          Text('Submitting...'),
+                        ],
+                      )
                     : const Text('Submit Car Listing'),
               ),
             ],
@@ -275,11 +286,38 @@ class _SellScreenState extends State<SellScreen> {
               itemBuilder: (context, index) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
-                  child: Image.file(
-                    _imageFiles[index],
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
+                  child: Stack(
+                    children: [
+                      Image.file(
+                        _imageFiles[index],
+                        width: 120,
+                        height: 120,
+                        fit: BoxFit.cover,
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _imageFiles.removeAt(index);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -309,12 +347,13 @@ class _SellScreenState extends State<SellScreen> {
   Future<void> _pickImages() async {
     try {
       final pickedFiles = await _picker.pickMultiImage();
-      if (pickedFiles != null) {
+      if (pickedFiles != null && pickedFiles.isNotEmpty) {
         setState(() {
           _imageFiles = pickedFiles.map((xfile) => File(xfile.path)).toList();
         });
       }
     } catch (e) {
+      debugPrint('Error picking images: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking images: ${e.toString()}')),
       );
@@ -322,6 +361,13 @@ class _SellScreenState extends State<SellScreen> {
   }
 
   Future<void> _submitForm(DatabaseService database, String? userId) async {
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to sell a car')),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
 
@@ -335,17 +381,38 @@ class _SellScreenState extends State<SellScreen> {
     setState(() => _isUploading = true);
 
     try {
+      debugPrint('Starting car submission process');
+      debugPrint('User ID: $userId');
+
       // Upload images
       List<String> imageUrls = [];
-      for (final imageFile in _imageFiles) {
-        final fileName =
-            '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
-        final storageRef =
-            FirebaseStorage.instance.ref().child('car_images/$fileName');
-        final uploadTask = await storageRef.putFile(imageFile);
-        final downloadUrl = await uploadTask.ref.getDownloadURL();
-        imageUrls.add(downloadUrl);
+      debugPrint('Uploading ${_imageFiles.length} images');
+
+      for (int i = 0; i < _imageFiles.length; i++) {
+        final imageFile = _imageFiles[i];
+        debugPrint(
+            'Uploading image ${i + 1}/${_imageFiles.length}: ${imageFile.path}');
+
+        try {
+          final fileName =
+              'car_${DateTime.now().millisecondsSinceEpoch}_${i}_${userId.substring(0, 4)}';
+          final storageRef =
+              FirebaseStorage.instance.ref().child('car_images/$fileName');
+
+          debugPrint('Created storage reference: car_images/$fileName');
+          final uploadTask = await storageRef.putFile(imageFile);
+          debugPrint('Image uploaded, getting download URL');
+
+          final downloadUrl = await uploadTask.ref.getDownloadURL();
+          debugPrint('Got download URL: $downloadUrl');
+          imageUrls.add(downloadUrl);
+        } catch (imageError) {
+          debugPrint('Error uploading image $i: $imageError');
+          throw Exception('Failed to upload image ${i + 1}: $imageError');
+        }
       }
+
+      debugPrint('All images uploaded successfully. Image URLs: $imageUrls');
 
       // Create car object
       final newCar = Car(
@@ -361,12 +428,19 @@ class _SellScreenState extends State<SellScreen> {
         fuelType: _fuelType,
         mileage: _mileage,
         images: imageUrls,
-        sellerId: userId ?? 'anonymous',
+        sellerId: userId,
         postedDate: DateTime.now(),
       );
 
+      debugPrint('Created car object with data: ${newCar.toMap()}');
+
       // Save to Firestore
-      await database.addCar(newCar);
+      final carId = await database.addCar(newCar);
+      debugPrint('Car saved to database with ID: $carId');
+
+      if (carId == null) {
+        throw Exception('Failed to save car to database - returned null ID');
+      }
 
       // Success
       ScaffoldMessenger.of(context).showSnackBar(
@@ -386,8 +460,13 @@ class _SellScreenState extends State<SellScreen> {
         _fuelType = 'Petrol';
       });
     } catch (e) {
+      debugPrint('Error submitting car: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit: ${e.toString()}')),
+        SnackBar(
+          content: Text('Failed to submit: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
       );
       setState(() => _isUploading = false);
     }
