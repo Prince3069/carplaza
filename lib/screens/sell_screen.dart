@@ -7,6 +7,7 @@ import 'package:car_plaza/widgets/responsive_layout.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as path;
 
 class SellScreen extends StatefulWidget {
   const SellScreen({super.key});
@@ -20,6 +21,8 @@ class _SellScreenState extends State<SellScreen> {
   List<File> _imageFiles = [];
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  String _uploadStatus = '';
+  double _uploadProgress = 0.0;
 
   // Form fields
   String _title = '';
@@ -198,6 +201,17 @@ class _SellScreenState extends State<SellScreen> {
               ),
               const SizedBox(height: 20),
 
+              if (_isUploading) ...[
+                LinearProgressIndicator(value: _uploadProgress),
+                const SizedBox(height: 8),
+                Text(
+                  _uploadStatus,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               ElevatedButton(
                 onPressed: _isUploading
                     ? null
@@ -360,6 +374,76 @@ class _SellScreenState extends State<SellScreen> {
     }
   }
 
+  Future<List<String>> _uploadImages(String userId) async {
+    List<String> imageUrls = [];
+    setState(() {
+      _uploadStatus = 'Preparing to upload images...';
+      _uploadProgress = 0.0;
+    });
+
+    try {
+      for (int i = 0; i < _imageFiles.length; i++) {
+        final imageFile = _imageFiles[i];
+        setState(() {
+          _uploadStatus =
+              'Uploading image ${i + 1} of ${_imageFiles.length}...';
+        });
+
+        // Create a unique filename
+        final fileName =
+            'car_${DateTime.now().millisecondsSinceEpoch}_${i}_${userId.substring(0, min(userId.length, 4))}';
+        final fileExtension = path.extension(imageFile.path);
+        final fullFileName = '$fileName$fileExtension';
+
+        // Get reference to Firebase Storage
+        final Reference storageReference =
+            FirebaseStorage.instance.ref().child('car_images/$fullFileName');
+
+        // Set metadata
+        final metadata = SettableMetadata(
+          contentType: 'image/jpeg',
+          customMetadata: {'userId': userId},
+        );
+
+        // Create upload task
+        final UploadTask uploadTask =
+            storageReference.putFile(imageFile, metadata);
+
+        // Monitor upload progress
+        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+          double progress = snapshot.bytesTransferred / snapshot.totalBytes;
+          setState(() {
+            _uploadProgress = progress;
+          });
+          debugPrint(
+              'Upload progress for image $i: ${(progress * 100).toStringAsFixed(2)}%');
+        });
+
+        // Wait for upload to complete
+        await uploadTask;
+
+        // Get download URL
+        final String downloadUrl = await storageReference.getDownloadURL();
+        imageUrls.add(downloadUrl);
+
+        debugPrint('Image $i uploaded: $downloadUrl');
+      }
+
+      setState(() {
+        _uploadStatus = 'All images uploaded successfully!';
+        _uploadProgress = 1.0;
+      });
+
+      return imageUrls;
+    } catch (e) {
+      setState(() {
+        _uploadStatus = 'Error: ${e.toString()}';
+      });
+      debugPrint('Error uploading images: $e');
+      throw Exception('Failed to upload images: $e');
+    }
+  }
+
   Future<void> _submitForm(DatabaseService database, String? userId) async {
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -378,40 +462,17 @@ class _SellScreenState extends State<SellScreen> {
       return;
     }
 
-    setState(() => _isUploading = true);
+    setState(() {
+      _isUploading = true;
+      _uploadStatus = 'Starting submission process...';
+    });
 
     try {
       debugPrint('Starting car submission process');
       debugPrint('User ID: $userId');
 
-      // Upload images
-      List<String> imageUrls = [];
-      debugPrint('Uploading ${_imageFiles.length} images');
-
-      for (int i = 0; i < _imageFiles.length; i++) {
-        final imageFile = _imageFiles[i];
-        debugPrint(
-            'Uploading image ${i + 1}/${_imageFiles.length}: ${imageFile.path}');
-
-        try {
-          final fileName =
-              'car_${DateTime.now().millisecondsSinceEpoch}_${i}_${userId.substring(0, 4)}';
-          final storageRef =
-              FirebaseStorage.instance.ref().child('car_images/$fileName');
-
-          debugPrint('Created storage reference: car_images/$fileName');
-          final uploadTask = await storageRef.putFile(imageFile);
-          debugPrint('Image uploaded, getting download URL');
-
-          final downloadUrl = await uploadTask.ref.getDownloadURL();
-          debugPrint('Got download URL: $downloadUrl');
-          imageUrls.add(downloadUrl);
-        } catch (imageError) {
-          debugPrint('Error uploading image $i: $imageError');
-          throw Exception('Failed to upload image ${i + 1}: $imageError');
-        }
-      }
-
+      // Upload images using our improved method
+      List<String> imageUrls = await _uploadImages(userId);
       debugPrint('All images uploaded successfully. Image URLs: $imageUrls');
 
       // Create car object
@@ -432,19 +493,27 @@ class _SellScreenState extends State<SellScreen> {
         postedDate: DateTime.now(),
       );
 
+      setState(() {
+        _uploadStatus = 'Saving car listing to database...';
+      });
+
       debugPrint('Created car object with data: ${newCar.toMap()}');
 
       // Save to Firestore
       final carId = await database.addCar(newCar);
-      debugPrint('Car saved to database with ID: $carId');
 
       if (carId == null) {
         throw Exception('Failed to save car to database - returned null ID');
       }
 
+      debugPrint('Car saved to database with ID: $carId');
+
       // Success
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Car listed successfully!')),
+        const SnackBar(
+          content: Text('Car listed successfully!'),
+          backgroundColor: Colors.green,
+        ),
       );
 
       // Reset form
@@ -452,6 +521,8 @@ class _SellScreenState extends State<SellScreen> {
       setState(() {
         _imageFiles = [];
         _isUploading = false;
+        _uploadStatus = '';
+        _uploadProgress = 0.0;
         _location = 'Lagos';
         _brand = 'Toyota';
         _year = DateTime.now().year;
@@ -468,7 +539,16 @@ class _SellScreenState extends State<SellScreen> {
           duration: const Duration(seconds: 5),
         ),
       );
-      setState(() => _isUploading = false);
+      setState(() {
+        _isUploading = false;
+        _uploadStatus = '';
+        _uploadProgress = 0.0;
+      });
     }
+  }
+
+  // Helper function for min
+  int min(int a, int b) {
+    return a < b ? a : b;
   }
 }
