@@ -1,37 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1E88E5">
-  <meta name="description" content="Car Plaza - Nigeria's Premier Car Marketplace">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Car Plaza - Buy and Sell Nigerian Cars">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="car_plaza">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
   <title>Car Plaza</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+  
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('flutter_service_worker.js');
-      });
-    }
-  const firebaseConfig = {
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
       apiKey: "AIzaSyCNfC3g5gIVzSxcUe_BPFiNf61E8EhdimU",
       authDomain: "car-plaza-b9689.firebaseapp.com",
       projectId: "car-plaza-b9689",
       storageBucket: "car-plaza-b9689.appspot.com",
       messagingSenderId: "74696492122",
-      appId: "1:74696492122:web:77c2a16681317df6c88463",
-      measurementId: "G-453PDQ8XBR"
+      appId: "1:74696492122:web:de25f54499c71a4ec88463",
+      measurementId: "G-Q2MKGR6C8M"
     };
-   
+
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
   </script>
+
+  <style>
+    /* This style prevents white flash when loading the app */
+    body {
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    #flutter_splash_screen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f5f5f5;
+      z-index: 9999;
+    }
+    .splash-image {
+      width: 150px;
+      height: 150px;
+    }
+  </style>
 </head>
 <body>
+  <!-- Splash screen (optional) -->
+  <div id="flutter_splash_screen">
+    <img class="splash-image" src="splash.png" alt="Loading Car Plaza">
+  </div>
+  
+  <script>
+    // Hide splash screen when Flutter app is loaded
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        var splash = document.getElementById('flutter_splash_screen');
+        if (splash) {
+          splash.style.display = 'none';
+        }
+      }, 3000);
+    });
+  </script>
+
+  <!-- Flutter app entry point -->
   <script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>
