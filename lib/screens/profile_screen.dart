@@ -5,8 +5,6 @@ import 'package:car_plaza/services/auth_service.dart';
 import 'package:car_plaza/services/database_service.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/widgets/car_item.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,15 +13,23 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
     final database = Provider.of<DatabaseService>(context);
-    final user = FirebaseAuth.instance.currentUser;
 
-    return ResponsiveLayout(
-      mobileBody:
-          ProfileContent(auth: auth, database: database, userId: user?.uid),
-      tabletBody:
-          ProfileContent(auth: auth, database: database, userId: user?.uid),
-      desktopBody:
-          ProfileContent(auth: auth, database: database, userId: user?.uid),
+    return StreamBuilder<User?>(
+      stream: auth.user,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.active) {
+          final User? user = snapshot.data;
+          return ResponsiveLayout(
+            mobileBody:
+                ProfileContent(auth: auth, database: database, user: user),
+            tabletBody:
+                ProfileContent(auth: auth, database: database, user: user),
+            desktopBody:
+                ProfileContent(auth: auth, database: database, user: user),
+          );
+        }
+        return const Center(child: CircularProgressIndicator());
+      },
     );
   }
 }
@@ -31,13 +37,13 @@ class ProfileScreen extends StatelessWidget {
 class ProfileContent extends StatefulWidget {
   final AuthService auth;
   final DatabaseService database;
-  final String? userId;
+  final User? user;
 
   const ProfileContent({
     super.key,
     required this.auth,
     required this.database,
-    required this.userId,
+    required this.user,
   });
 
   @override
@@ -49,113 +55,92 @@ class _ProfileContentState extends State<ProfileContent> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    if (widget.user != null) {
+      _loadUserData();
+    }
   }
 
   Future<void> _loadUserData() async {
-    if (widget.userId == null) return;
-
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(widget.userId)
-        .get();
-
-    if (userDoc.exists) {
+    final userDoc = await widget.database.getUser(widget.user!.uid);
+    if (userDoc != null) {
       setState(() {
-        _nameController.text = userDoc.data()?['name'] ?? '';
-        _emailController.text = userDoc.data()?['email'] ?? '';
-        _phoneController.text = userDoc.data()?['phone'] ?? '';
-      });
-    } else {
-      // Initialize with auth user data
-      final user = FirebaseAuth.instance.currentUser;
-      setState(() {
-        _emailController.text = user?.email ?? '';
+        _nameController.text = userDoc.name;
+        _emailController.text = userDoc.email;
+        _phoneController.text = userDoc.phone;
       });
     }
   }
 
   Future<void> _saveProfile() async {
-    // Validate form first
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
-    // Save form data
-    _formKey.currentState!.save();
-
-    if (widget.userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: No user logged in')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final userData = {
-        'name': _nameController.text,
-        'email': _emailController.text,
-        'phone': _phoneController.text,
-        'isVerifiedSeller': true, // Automatically verify user
-        'verificationRequested': true,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      };
+      if (widget.user == null) {
+        // New user - register
+        final user = await widget.auth.registerWithEmailAndPassword(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+          _nameController.text.trim(),
+          _phoneController.text.trim(),
+        );
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .set(userData, SetOptions(merge: true));
+        if (user == null) {
+          throw Exception('Registration failed');
+        }
+      } else {
+        // Existing user - update profile
+        await widget.database.updateUserData(UserModel(
+          id: widget.user!.uid,
+          name: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          isVerifiedSeller: true,
+          joinedDate: DateTime.now(),
+        ));
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Profile saved successfully! You can now sell cars.'),
+          content: Text('Profile saved! You can now sell cars.'),
           backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to save profile: ${e.toString()}'),
+          content: Text('Error: ${e.toString()}'),
           backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
         ),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoggedIn = widget.user != null;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'My Profile',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          Text(
+            isLoggedIn ? 'My Profile' : 'Create Account',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-
-          // Profile Card
           Card(
             elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Form(
@@ -164,126 +149,95 @@ class _ProfileContentState extends State<ProfileContent> {
                   children: [
                     const CircleAvatar(
                       radius: 50,
-                      backgroundColor: Colors.blue,
-                      child: Icon(Icons.person, size: 50, color: Colors.white),
+                      child: Icon(Icons.person, size: 50),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) =>
-                          value!.isEmpty ? 'Please enter your name' : null,
+                      decoration:
+                          const InputDecoration(labelText: 'Full Name*'),
+                      validator: (value) => value!.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Email*'),
                       keyboardType: TextInputType.emailAddress,
-                      validator: (value) =>
-                          value!.isEmpty ? 'Please enter your email' : null,
+                      validator: (value) => value!.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone Number',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Phone*'),
                       keyboardType: TextInputType.phone,
-                      validator: (value) => value!.isEmpty
-                          ? 'Please enter your phone number'
-                          : null,
+                      validator: (value) => value!.isEmpty ? 'Required' : null,
                     ),
-                    const SizedBox(height: 16),
+                    if (!isLoggedIn) ...[
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _passwordController,
+                        decoration:
+                            const InputDecoration(labelText: 'Password*'),
+                        obscureText: true,
+                        validator: (value) =>
+                            value!.length < 6 ? 'Minimum 6 characters' : null,
+                      ),
+                    ],
+                    const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _saveProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
                         child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : const Text(
-                                'Save Profile',
-                                style: TextStyle(color: Colors.white),
-                              ),
+                            ? const CircularProgressIndicator()
+                            : Text(
+                                isLoggedIn ? 'Save Profile' : 'Create Account'),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: widget.auth.signOut,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: const BorderSide(color: Colors.red),
-                        ),
-                        child: const Text(
-                          'Sign Out',
-                          style: TextStyle(color: Colors.red),
+                    if (isLoggedIn) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: widget.auth.signOut,
+                          child: const Text('Sign Out'),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
             ),
           ),
-
-          const SizedBox(height: 24),
-          const Text(
-            'My Listings',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-
-          // User's car listings
-          if (widget.userId != null)
+          if (isLoggedIn) ...[
+            const SizedBox(height: 24),
+            const Text(
+              'My Listings',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
             StreamBuilder<List<Car>>(
-              stream: widget.database.getCarsBySeller(widget.userId!),
+              stream: widget.database.getCarsBySeller(widget.user!.uid),
               builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
+                if (snapshot.hasError) return Text('Error: ${snapshot.error}');
+                if (!snapshot.hasData) return const CircularProgressIndicator();
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                List<Car> cars = snapshot.data ?? [];
-
-                if (cars.isEmpty) {
-                  return const Center(
-                    child: Text('You have no car listings yet'),
-                  );
-                }
+                final cars = snapshot.data!;
+                if (cars.isEmpty) return const Text('No listings yet');
 
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount:
-                        MediaQuery.of(context).size.width > 600 ? 2 : 1,
-                    childAspectRatio: 1.5,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.8,
                   ),
                   itemCount: cars.length,
-                  itemBuilder: (context, index) {
-                    return CarItem(car: cars[index]);
-                  },
+                  itemBuilder: (context, index) => CarItem(car: cars[index]),
                 );
               },
             ),
+          ],
         ],
       ),
     );
@@ -294,6 +248,7 @@ class _ProfileContentState extends State<ProfileContent> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 }
