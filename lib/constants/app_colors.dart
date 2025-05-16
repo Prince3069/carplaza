@@ -6,6 +6,10 @@ class AppColors {
   static const Color accentColor = Color(0xFF00C853);
   static const Color errorColor = Color(0xFFD32F2F);
   static const Color warningColor = Color(0xFFFFA000);
+  static const Color lightGrey = Color(0xFFF5F5F5);
+  static const Color darkGrey = Color(0xFF757575);
+  static const Color successColor = Color(0xFF4CAF50);
+// static const Color warningColor = Color(0xFFFFC107);
 
   static ThemeData lightTheme = ThemeData(
     primaryColor: primaryColor,
