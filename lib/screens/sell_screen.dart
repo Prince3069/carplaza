@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:car_plaza/models/car_model.dart';
@@ -8,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as path;
+import 'package:car_plaza/app_colors.dart';
 
 class SellScreen extends StatefulWidget {
   const SellScreen({super.key});
@@ -62,222 +64,181 @@ class _SellScreenState extends State<SellScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     return ResponsiveLayout(
-      mobileBody: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Sell Your Car',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-
-              // Car Images
-              _buildImageUploadSection(),
-              const SizedBox(height: 20),
-
-              // Car Details
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Title*'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-                onSaved: (value) => _title = value!,
-              ),
-              const SizedBox(height: 10),
-
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Description*'),
-                maxLines: 3,
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-                onSaved: (value) => _description = value!,
-              ),
-              const SizedBox(height: 10),
-
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Price (₦)*'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value!.isEmpty) return 'Required';
-                  if (double.tryParse(value) == null) return 'Invalid number';
-                  return null;
-                },
-                onSaved: (value) => _price = double.parse(value!),
-              ),
-              const SizedBox(height: 10),
-
-              DropdownButtonFormField<String>(
-                value: _location,
-                items: _locations.map((location) {
-                  return DropdownMenuItem(
-                    value: location,
-                    child: Text(location),
-                  );
-                }).toList(),
-                onChanged: (value) => setState(() => _location = value!),
-                decoration: const InputDecoration(labelText: 'Location*'),
-              ),
-              const SizedBox(height: 10),
-
-              DropdownButtonFormField<String>(
-                value: _brand,
-                items: _brands.map((brand) {
-                  return DropdownMenuItem(
-                    value: brand,
-                    child: Text(brand),
-                  );
-                }).toList(),
-                onChanged: (value) => setState(() => _brand = value!),
-                decoration: const InputDecoration(labelText: 'Brand*'),
-              ),
-              const SizedBox(height: 10),
-
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Model*'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-                onSaved: (value) => _model = value!,
-              ),
-              const SizedBox(height: 10),
-
-              DropdownButtonFormField<int>(
-                value: _year,
-                items: List.generate(30, (index) {
-                  int year = DateTime.now().year - index;
-                  return DropdownMenuItem(
-                    value: year,
-                    child: Text(year.toString()),
-                  );
-                }),
-                onChanged: (value) => setState(() => _year = value!),
-                decoration: const InputDecoration(labelText: 'Year*'),
-              ),
-              const SizedBox(height: 10),
-
-              DropdownButtonFormField<String>(
-                value: _condition,
-                items: _conditions.map((condition) {
-                  return DropdownMenuItem(
-                    value: condition,
-                    child: Text(condition),
-                  );
-                }).toList(),
-                onChanged: (value) => setState(() => _condition = value!),
-                decoration: const InputDecoration(labelText: 'Condition*'),
-              ),
-              const SizedBox(height: 10),
-
-              DropdownButtonFormField<String>(
-                value: _transmission,
-                items: _transmissions.map((transmission) {
-                  return DropdownMenuItem(
-                    value: transmission,
-                    child: Text(transmission),
-                  );
-                }).toList(),
-                onChanged: (value) => setState(() => _transmission = value!),
-                decoration: const InputDecoration(labelText: 'Transmission*'),
-              ),
-              const SizedBox(height: 10),
-
-              DropdownButtonFormField<String>(
-                value: _fuelType,
-                items: _fuelTypes.map((fuelType) {
-                  return DropdownMenuItem(
-                    value: fuelType,
-                    child: Text(fuelType),
-                  );
-                }).toList(),
-                onChanged: (value) => setState(() => _fuelType = value!),
-                decoration: const InputDecoration(labelText: 'Fuel Type*'),
-              ),
-              const SizedBox(height: 10),
-
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Mileage (km)*'),
-                validator: (value) => value!.isEmpty ? 'Required' : null,
-                onSaved: (value) => _mileage = value!,
-              ),
-              const SizedBox(height: 20),
-
-              if (_isUploading) ...[
-                LinearProgressIndicator(value: _uploadProgress),
-                const SizedBox(height: 8),
-                Text(
-                  _uploadStatus,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontStyle: FontStyle.italic),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              ElevatedButton(
-                onPressed: _isUploading
-                    ? null
-                    : () => _submitForm(database, user?.uid),
-                child: _isUploading
-                    ? const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(color: Colors.white),
-                          SizedBox(width: 10),
-                          Text('Submitting...'),
-                        ],
-                      )
-                    : const Text('Submit Car Listing'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      tabletBody: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Sell Your Car',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                _buildImageUploadSection(),
-                const SizedBox(height: 24),
-                // [Rest of your tablet layout...]
-              ],
-            ),
-          ),
-        ),
-      ),
+      mobileBody: _buildForm(database, user?.uid),
+      tabletBody: _buildForm(database, user?.uid),
       desktopBody: Center(
         child: SizedBox(
-          width: 1000,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Sell Your Car',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 32),
-                  _buildImageUploadSection(),
-                  const SizedBox(height: 32),
-                  // [Rest of your desktop layout...]
-                ],
-              ),
-            ),
-          ),
+          width: 800,
+          child: _buildForm(database, user?.uid),
         ),
+      ),
+    );
+  }
+
+  Widget _buildForm(DatabaseService database, String? userId) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Sell Your Car',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            _buildImageUploadSection(),
+            const SizedBox(height: 20),
+            TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Title*',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value!.isEmpty ? 'Required' : null,
+              onSaved: (value) => _title = value!,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Description*',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+              validator: (value) => value!.isEmpty ? 'Required' : null,
+              onSaved: (value) => _description = value!,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Price (₦)*',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              validator: (value) {
+                if (value!.isEmpty) return 'Required';
+                if (double.tryParse(value) == null) return 'Invalid number';
+                return null;
+              },
+              onSaved: (value) => _price = double.parse(value!),
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownFormField<String>(
+              value: _location,
+              items: _locations,
+              onChanged: (value) => setState(() => _location = value!),
+              labelText: 'Location*',
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownFormField<String>(
+              value: _brand,
+              items: _brands,
+              onChanged: (value) => setState(() => _brand = value!),
+              labelText: 'Brand*',
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Model*',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value!.isEmpty ? 'Required' : null,
+              onSaved: (value) => _model = value!,
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownFormField<int>(
+              value: _year,
+              items: List.generate(30, (index) {
+                int year = DateTime.now().year - index;
+                return DropdownMenuItem(
+                  value: year,
+                  child: Text(year.toString()),
+                );
+              }),
+              onChanged: (value) => setState(() => _year = value!),
+              labelText: 'Year*',
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownFormField<String>(
+              value: _condition,
+              items: _conditions,
+              onChanged: (value) => setState(() => _condition = value!),
+              labelText: 'Condition*',
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownFormField<String>(
+              value: _transmission,
+              items: _transmissions,
+              onChanged: (value) => setState(() => _transmission = value!),
+              labelText: 'Transmission*',
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownFormField<String>(
+              value: _fuelType,
+              items: _fuelTypes,
+              onChanged: (value) => setState(() => _fuelType = value!),
+              labelText: 'Fuel Type*',
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Mileage (km)*',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => value!.isEmpty ? 'Required' : null,
+              onSaved: (value) => _mileage = value!,
+            ),
+            const SizedBox(height: 20),
+            if (_isUploading) ...[
+              LinearProgressIndicator(value: _uploadProgress),
+              const SizedBox(height: 8),
+              Text(
+                _uploadStatus,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 12),
+            ],
+            ElevatedButton(
+              onPressed:
+                  _isUploading ? null : () => _submitForm(database, userId),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: _isUploading
+                  ? const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(color: Colors.white),
+                        SizedBox(width: 10),
+                        Text('Submitting...',
+                            style: TextStyle(color: Colors.white)),
+                      ],
+                    )
+                  : const Text('Submit Car Listing',
+                      style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownFormField<T>({
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
+    required String labelText,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      items: items,
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: const OutlineInputBorder(),
       ),
     );
   }
@@ -302,11 +263,14 @@ class _SellScreenState extends State<SellScreen> {
                   padding: const EdgeInsets.only(right: 8.0),
                   child: Stack(
                     children: [
-                      Image.file(
-                        _imageFiles[index],
-                        width: 120,
-                        height: 120,
-                        fit: BoxFit.cover,
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          _imageFiles[index],
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       Positioned(
                         top: 0,
@@ -344,6 +308,9 @@ class _SellScreenState extends State<SellScreen> {
               onPressed: _isUploading ? null : _pickImages,
               icon: const Icon(Icons.camera_alt),
               label: const Text('Add Image'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+              ),
             ),
             if (_imageFiles.isNotEmpty)
               TextButton(
@@ -470,6 +437,16 @@ class _SellScreenState extends State<SellScreen> {
     try {
       debugPrint('Starting car submission process');
       debugPrint('User ID: $userId');
+
+      // Check if user is verified
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (!userDoc.exists || !(userDoc.data()?['isVerifiedSeller'] ?? false)) {
+        throw Exception('You must be a verified seller to list cars');
+      }
 
       // Upload images using our improved method
       List<String> imageUrls = await _uploadImages(userId);
