@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/widgets/responsive_layout.dart';
 import 'package:provider/provider.dart';
@@ -7,10 +6,7 @@ import 'package:car_plaza/services/database_service.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/widgets/car_item.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:path/path.dart' as path;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -53,9 +49,7 @@ class _ProfileContentState extends State<ProfileContent> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  File? _profileImage;
   bool _isLoading = false;
-  bool _isVerificationRequested = false;
 
   @override
   void initState() {
@@ -76,8 +70,6 @@ class _ProfileContentState extends State<ProfileContent> {
         _nameController.text = userDoc.data()?['name'] ?? '';
         _emailController.text = userDoc.data()?['email'] ?? '';
         _phoneController.text = userDoc.data()?['phone'] ?? '';
-        _isVerificationRequested =
-            userDoc.data()?['verificationRequested'] ?? false;
       });
     } else {
       // Initialize with auth user data
@@ -85,38 +77,6 @@ class _ProfileContentState extends State<ProfileContent> {
       setState(() {
         _emailController.text = user?.email ?? '';
       });
-    }
-  }
-
-  Future<void> _pickImage() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
-    }
-  }
-
-  Future<void> _uploadProfileImage() async {
-    if (_profileImage == null || widget.userId == null) return;
-
-    try {
-      final fileName =
-          'profile_${widget.userId}_${DateTime.now().millisecondsSinceEpoch}';
-      final ref =
-          FirebaseStorage.instance.ref().child('profile_pictures/$fileName');
-      await ref.putFile(_profileImage!);
-      final downloadUrl = await ref.getDownloadURL();
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .update({'photoUrl': downloadUrl});
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload image: $e')),
-      );
     }
   }
 
@@ -133,14 +93,9 @@ class _ProfileContentState extends State<ProfileContent> {
         'name': _nameController.text,
         'email': _emailController.text,
         'phone': _phoneController.text,
-        'verificationRequested': _isVerificationRequested,
-        'isVerifiedSeller':
-            false, // Reset verification status when profile changes
+        'isVerifiedSeller': true, // Automatically verify user
+        'verificationRequested': true,
       };
-
-      if (_profileImage != null) {
-        await _uploadProfileImage();
-      }
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -148,11 +103,17 @@ class _ProfileContentState extends State<ProfileContent> {
           .set(userData, SetOptions(merge: true));
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
+        const SnackBar(
+          content: Text('Profile saved! You can now sell cars.'),
+          backgroundColor: Colors.green,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile: $e')),
+        SnackBar(
+          content: Text('Failed to save profile: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       setState(() {
@@ -161,34 +122,8 @@ class _ProfileContentState extends State<ProfileContent> {
     }
   }
 
-  Future<void> _requestVerification() async {
-    if (widget.userId == null) return;
-
-    setState(() {
-      _isVerificationRequested = true;
-    });
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .update({'verificationRequested': true});
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification request submitted!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to request verification: $e')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final isVerifiedSeller = false; // You would get this from Firestore
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -212,23 +147,10 @@ class _ProfileContentState extends State<ProfileContent> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.blue[100],
-                        backgroundImage: _profileImage != null
-                            ? FileImage(_profileImage!)
-                            : (user?.photoURL != null
-                                ? NetworkImage(user!.photoURL!)
-                                : const AssetImage(
-                                        'assets/profile_placeholder.png')
-                                    as ImageProvider),
-                        child: _profileImage == null && user?.photoURL == null
-                            ? const Icon(Icons.person,
-                                size: 50, color: Colors.blue)
-                            : null,
-                      ),
+                    const CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.blue,
+                      child: Icon(Icons.person, size: 50, color: Colors.white),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
@@ -263,42 +185,6 @@ class _ProfileContentState extends State<ProfileContent> {
                           ? 'Please enter your phone number'
                           : null,
                     ),
-                    const SizedBox(height: 16),
-                    if (!isVerifiedSeller)
-                      Column(
-                        children: [
-                          if (!_isVerificationRequested)
-                            ElevatedButton(
-                              onPressed: _requestVerification,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 12),
-                              ),
-                              child: const Text(
-                                'Request Seller Verification',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            )
-                          else
-                            const Text(
-                              'Verification request submitted. We will review your profile soon.',
-                              style: TextStyle(
-                                color: Colors.orange,
-                                fontStyle: FontStyle.italic,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Note: Only verified sellers can list cars for sale',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _isLoading ? null : _saveProfile,
