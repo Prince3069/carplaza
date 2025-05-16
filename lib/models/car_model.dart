@@ -53,6 +53,15 @@ class Car {
       'sellerId': sellerId,
       'postedDate': postedDate.toIso8601String(),
       'isVerified': isVerified,
+      'searchKeywords': [
+        title.toLowerCase(),
+        brand.toLowerCase(),
+        model.toLowerCase(),
+        location.toLowerCase(),
+        condition.toLowerCase(),
+        transmission.toLowerCase(),
+        fuelType.toLowerCase(),
+      ],
     };
   }
 

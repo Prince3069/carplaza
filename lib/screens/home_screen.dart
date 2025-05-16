@@ -1,3 +1,4 @@
+import 'package:car_plaza/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/screens/search_screen.dart';
@@ -9,7 +10,7 @@ import 'package:car_plaza/widgets/car_item.dart';
 import 'package:car_plaza/widgets/responsive_layout.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/services/database_service.dart';
-import 'package:car_plaza/app_colors.dart';
+// import 'package:car_plaza/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
