@@ -81,8 +81,20 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate() || widget.userId == null) return;
+    // Validate form first
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    // Save form data
     _formKey.currentState!.save();
+
+    if (widget.userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: No user logged in')),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -95,6 +107,7 @@ class _ProfileContentState extends State<ProfileContent> {
         'phone': _phoneController.text,
         'isVerifiedSeller': true, // Automatically verify user
         'verificationRequested': true,
+        'lastUpdated': FieldValue.serverTimestamp(),
       };
 
       await FirebaseFirestore.instance
@@ -104,15 +117,17 @@ class _ProfileContentState extends State<ProfileContent> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Profile saved! You can now sell cars.'),
+          content: Text('Profile saved successfully! You can now sell cars.'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to save profile: $e'),
+          content: Text('Failed to save profile: ${e.toString()}'),
           backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
         ),
       );
     } finally {
@@ -186,29 +201,36 @@ class _ProfileContentState extends State<ProfileContent> {
                           : null,
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _saveProfile,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        minimumSize: const Size(double.infinity, 48),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _saveProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : const Text(
+                                'Save Profile',
+                                style: TextStyle(color: Colors.white),
+                              ),
                       ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'Save Profile',
-                              style: TextStyle(color: Colors.white),
-                            ),
                     ),
                     const SizedBox(height: 8),
-                    OutlinedButton(
-                      onPressed: widget.auth.signOut,
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                        side: const BorderSide(color: Colors.red),
-                      ),
-                      child: const Text(
-                        'Sign Out',
-                        style: TextStyle(color: Colors.red),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: widget.auth.signOut,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                        child: const Text(
+                          'Sign Out',
+                          style: TextStyle(color: Colors.red),
+                        ),
                       ),
                     ),
                   ],
