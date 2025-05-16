@@ -104,6 +104,60 @@ class DatabaseService {
     }
   }
 
+  Stream<List<Car>> searchCars({
+    String? query,
+    String? brand,
+    String? location,
+    double? minPrice,
+    double? maxPrice,
+    int? minYear,
+    int? maxYear,
+  }) {
+    // Start with the base collection
+    Query collection = _firestore.collection(carsCollection);
+
+    // Apply text search if query is provided
+    if (query != null && query.isNotEmpty) {
+      collection = collection.where(
+        'searchKeywords',
+        arrayContains: query.toLowerCase(),
+      );
+    }
+
+    // Apply brand filter if provided
+    if (brand != null && brand.isNotEmpty) {
+      collection = collection.where('brand', isEqualTo: brand);
+    }
+
+    // Apply location filter if provided
+    if (location != null && location.isNotEmpty) {
+      collection = collection.where('location', isEqualTo: location);
+    }
+
+    // Apply price range filters if provided
+    if (minPrice != null) {
+      collection = collection.where('price', isGreaterThanOrEqualTo: minPrice);
+    }
+    if (maxPrice != null) {
+      collection = collection.where('price', isLessThanOrEqualTo: maxPrice);
+    }
+
+    // Apply year range filters if provided
+    if (minYear != null) {
+      collection = collection.where('year', isGreaterThanOrEqualTo: minYear);
+    }
+    if (maxYear != null) {
+      collection = collection.where('year', isLessThanOrEqualTo: maxYear);
+    }
+
+    // Return the stream of results, ordered by posting date (newest first)
+    return collection.orderBy('postedDate', descending: true).snapshots().map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Car.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
   Stream<List<Car>> get cars {
     debugPrint('Fetching all cars stream');
     return _firestore

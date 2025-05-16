@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as path;
-import 'package:car_plaza/app_colors.dart';
+// import 'package:car_plaza/app_colors.dart';
 
 class SellScreen extends StatefulWidget {
   const SellScreen({super.key});
@@ -150,13 +150,7 @@ class _SellScreenState extends State<SellScreen> {
             const SizedBox(height: 12),
             _buildDropdownFormField<int>(
               value: _year,
-              items: List.generate(30, (index) {
-                int year = DateTime.now().year - index;
-                return DropdownMenuItem(
-                  value: year,
-                  child: Text(year.toString()),
-                );
-              }),
+              items: List.generate(30, (index) => DateTime.now().year - index),
               onChanged: (value) => setState(() => _year = value!),
               labelText: 'Year*',
             ),
@@ -229,13 +223,18 @@ class _SellScreenState extends State<SellScreen> {
 
   Widget _buildDropdownFormField<T>({
     required T value,
-    required List<DropdownMenuItem<T>> items,
+    required List<T> items,
     required ValueChanged<T?> onChanged,
     required String labelText,
   }) {
     return DropdownButtonFormField<T>(
       value: value,
-      items: items,
+      items: items.map((item) {
+        return DropdownMenuItem<T>(
+          value: item,
+          child: Text(item.toString()),
+        );
+      }).toList(),
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: labelText,
@@ -287,6 +286,10 @@ class _SellScreenState extends State<SellScreen> {
                             decoration: BoxDecoration(
                               color: Colors.red,
                               borderRadius: BorderRadius.circular(10),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 12,
+                              minHeight: 12,
                             ),
                             child: const Icon(
                               Icons.close,
