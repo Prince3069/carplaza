@@ -44,7 +44,6 @@ class DatabaseService {
     }
   }
 
-  // Improved image upload function with better error handling
   Future<List<String>> uploadCarImages(
       List<File> imageFiles, String userId) async {
     List<String> downloadUrls = [];
@@ -104,60 +103,6 @@ class DatabaseService {
     }
   }
 
-  Stream<List<Car>> searchCars({
-    String? query,
-    String? brand,
-    String? location,
-    double? minPrice,
-    double? maxPrice,
-    int? minYear,
-    int? maxYear,
-  }) {
-    // Start with the base collection
-    Query collection = _firestore.collection(carsCollection);
-
-    // Apply text search if query is provided
-    if (query != null && query.isNotEmpty) {
-      collection = collection.where(
-        'searchKeywords',
-        arrayContains: query.toLowerCase(),
-      );
-    }
-
-    // Apply brand filter if provided
-    if (brand != null && brand.isNotEmpty) {
-      collection = collection.where('brand', isEqualTo: brand);
-    }
-
-    // Apply location filter if provided
-    if (location != null && location.isNotEmpty) {
-      collection = collection.where('location', isEqualTo: location);
-    }
-
-    // Apply price range filters if provided
-    if (minPrice != null) {
-      collection = collection.where('price', isGreaterThanOrEqualTo: minPrice);
-    }
-    if (maxPrice != null) {
-      collection = collection.where('price', isLessThanOrEqualTo: maxPrice);
-    }
-
-    // Apply year range filters if provided
-    if (minYear != null) {
-      collection = collection.where('year', isGreaterThanOrEqualTo: minYear);
-    }
-    if (maxYear != null) {
-      collection = collection.where('year', isLessThanOrEqualTo: maxYear);
-    }
-
-    // Return the stream of results, ordered by posting date (newest first)
-    return collection.orderBy('postedDate', descending: true).snapshots().map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Car.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
-  }
-
   Stream<List<Car>> get cars {
     debugPrint('Fetching all cars stream');
     return _firestore
@@ -171,7 +116,9 @@ class DatabaseService {
       final cars = snapshot.docs
           .map((doc) {
             try {
-              return Car.fromMap(doc.id, doc.data()!);
+              final data = doc.data() as Map<String, dynamic>?;
+              if (data == null) return null;
+              return Car.fromMap(doc.id, data);
             } catch (e) {
               debugPrint('Error parsing car document ${doc.id}: $e');
               return null;
@@ -197,8 +144,15 @@ class DatabaseService {
       debugPrint('Error fetching seller cars: $error');
       return [];
     }).map((snapshot) {
-      final cars =
-          snapshot.docs.map((doc) => Car.fromMap(doc.id, doc.data()!)).toList();
+      final cars = snapshot.docs
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return null;
+            return Car.fromMap(doc.id, data);
+          })
+          .where((car) => car != null)
+          .cast<Car>()
+          .toList();
       debugPrint('Fetched ${cars.length} cars for seller: $sellerId');
       return cars;
     });
@@ -213,14 +167,20 @@ class DatabaseService {
         .handleError((error) {
       debugPrint('Error fetching user: $error');
       return null;
-    }).map((doc) => doc.exists ? UserModel.fromMap(doc.data()!) : null);
+    }).map((doc) {
+      if (!doc.exists) return null;
+      final data = doc.data();
+      return data != null ? UserModel.fromMap(data) : null;
+    });
   }
 
   Future<Car?> getCarById(String carId) async {
     try {
       debugPrint('Fetching car by ID: $carId');
       final doc = await _firestore.collection(carsCollection).doc(carId).get();
-      return doc.exists ? Car.fromMap(doc.id, doc.data()!) : null;
+      if (!doc.exists) return null;
+      final data = doc.data();
+      return data != null ? Car.fromMap(doc.id, data) : null;
     } catch (e) {
       debugPrint('Error getting car: $e');
       return null;
@@ -238,11 +198,6 @@ class DatabaseService {
     }
   }
 
-  // Helper function for min
-  int min(int a, int b) {
-    return a < b ? a : b;
-  }
-
   Future<void> updateUserData(UserModel user) async {
     try {
       debugPrint('Updating user: ${user.id}');
@@ -255,5 +210,67 @@ class DatabaseService {
       debugPrint('Error updating user: $e');
       rethrow;
     }
+  }
+
+  // Helper function for min
+  int min(int a, int b) {
+    return a < b ? a : b;
+  }
+
+  // Add search functionality
+  Stream<List<Car>> searchCars({
+    String? query,
+    String? brand,
+    String? location,
+    double? minPrice,
+    double? maxPrice,
+    int? minYear,
+    int? maxYear,
+  }) {
+    Query collection = _firestore.collection(carsCollection);
+
+    if (query != null && query.isNotEmpty) {
+      collection = collection.where(
+        'searchKeywords',
+        arrayContains: query.toLowerCase(),
+      );
+    }
+
+    if (brand != null && brand.isNotEmpty) {
+      collection = collection.where('brand', isEqualTo: brand);
+    }
+
+    if (location != null && location.isNotEmpty) {
+      collection = collection.where('location', isEqualTo: location);
+    }
+
+    if (minPrice != null) {
+      collection = collection.where('price', isGreaterThanOrEqualTo: minPrice);
+    }
+
+    if (maxPrice != null) {
+      collection = collection.where('price', isLessThanOrEqualTo: maxPrice);
+    }
+
+    if (minYear != null) {
+      collection = collection.where('year', isGreaterThanOrEqualTo: minYear);
+    }
+
+    if (maxYear != null) {
+      collection = collection.where('year', isLessThanOrEqualTo: maxYear);
+    }
+
+    return collection
+        .orderBy('postedDate', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) {
+              final data = doc.data() as Map<String, dynamic>?;
+              if (data == null) return null;
+              return Car.fromMap(doc.id, data);
+            })
+            .where((car) => car != null)
+            .cast<Car>()
+            .toList());
   }
 }
