@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:car_plaza/constants/app_colors.dart';
+import 'package:car_plaza/screens/profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -416,6 +417,24 @@ class _SellScreenState extends State<SellScreen> {
   }
 
   Future<void> _submitForm(DatabaseService database, String? userId) async {
+    // Add this at the beginning of your _submitForm method:
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please save your profile first'),
+          action: SnackBarAction(
+            label: 'Go to Profile',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must be logged in to sell a car')),

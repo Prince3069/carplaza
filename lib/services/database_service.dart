@@ -174,6 +174,20 @@ class DatabaseService {
     });
   }
 
+  Future<UserModel?> getUser(String userId) async {
+    try {
+      debugPrint('Fetching user data for: $userId');
+      final doc =
+          await _firestore.collection(usersCollection).doc(userId).get();
+      if (!doc.exists) return null;
+      final data = doc.data();
+      return data != null ? UserModel.fromMap(data) : null;
+    } catch (e) {
+      debugPrint('Error getting user: $e');
+      return null;
+    }
+  }
+
   Future<Car?> getCarById(String carId) async {
     try {
       debugPrint('Fetching car by ID: $carId');

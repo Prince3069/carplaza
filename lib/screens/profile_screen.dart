@@ -1,3 +1,5 @@
+import 'package:car_plaza/models/user_model.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/widgets/responsive_layout.dart';
 import 'package:provider/provider.dart';
