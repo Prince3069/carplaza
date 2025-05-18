@@ -462,7 +462,7 @@ if (user.isAdmin) { // You'll need to implement isAdmin check
   ElevatedButton(
     onPressed: _verifySeller,
     child: const Text('Verify Seller'),
-  ),
+  );
 }
   @override
   Widget build(BuildContext context) {
