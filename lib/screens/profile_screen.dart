@@ -442,7 +442,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+// Add this to your _ProfileScreenState class
+Future<void> _verifySeller() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
 
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .update({'isVerifiedSeller': true});
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Seller verification updated!')),
+  );
+}
+
+// Add this to your build method (for admin only)
+if (user.isAdmin) { // You'll need to implement isAdmin check
+  ElevatedButton(
+    onPressed: _verifySeller,
+    child: const Text('Verify Seller'),
+  ),
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
