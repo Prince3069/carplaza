@@ -291,6 +291,18 @@ class AuthService {
     }
   }
 
+  Future<bool> isAdmin() async {
+    try {
+      if (currentUser == null) return false;
+      final doc =
+          await _firestore.collection('users').doc(currentUser!.uid).get();
+      return doc.data()?['isAdmin'] == true;
+    } catch (e) {
+      print('Error checking admin status: $e');
+      return false;
+    }
+  }
+
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
