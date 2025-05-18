@@ -1,10 +1,9 @@
-// ignore_for_file: unused_import
-import 'package:car_plaza/screens/admin_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/services/auth_service.dart';
+import 'package:car_plaza/routes.dart'; // Add this import
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -182,15 +181,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Text('Admin Tools',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const AdminScreen()),
-                    );
+                ListTile(
+                  leading: const Icon(Icons.admin_panel_settings),
+                  title: const Text('Admin Panel'),
+                  onTap: () {
+                    Navigator.pushNamed(context, RouteManager.adminPage);
                   },
-                  child: const Text('Seller Verification Panel'),
                 ),
               ],
             ],
