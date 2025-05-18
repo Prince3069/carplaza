@@ -239,13 +239,20 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Get current user
   User? get currentUser => _auth.currentUser;
 
+  // Auth state changes stream
+  Stream<User?> get user => _auth.authStateChanges();
+
+  // Register new user
   Future<User?> registerWithEmailAndPassword({
     required String email,
     required String password,
     required String name,
     required String phone,
+    bool isAdmin = false,
+    bool isVerifiedSeller = false,
   }) async {
     try {
       UserCredential credential = await _auth.createUserWithEmailAndPassword(
@@ -257,8 +264,8 @@ class AuthService {
         'name': name,
         'email': email,
         'phone': phone,
-        'isVerifiedSeller': false, // Default to false
-        'isAdmin': false, // Default to false
+        'isVerifiedSeller': isVerifiedSeller,
+        'isAdmin': isAdmin,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -269,6 +276,7 @@ class AuthService {
     }
   }
 
+  // Sign in existing user
   Future<User?> signInWithEmailAndPassword(
       String email, String password) async {
     try {
@@ -283,14 +291,48 @@ class AuthService {
     }
   }
 
+  // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
+  // Verify seller (admin function)
   Future<void> verifySeller(String userId) async {
     await _firestore.collection('users').doc(userId).update({
       'isVerifiedSeller': true,
       'verifiedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  // Make user admin (admin function)
+  Future<void> makeAdmin(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'isAdmin': true,
+      'isVerifiedSeller': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Update user profile
+  Future<void> updateProfile({
+    required String userId,
+    required String name,
+    required String phone,
+  }) async {
+    await _firestore.collection('users').doc(userId).update({
+      'name': name,
+      'phone': phone,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Password reset
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      print("Error sending password reset email: $e");
+      rethrow;
+    }
   }
 }
