@@ -10,14 +10,12 @@ import 'package:car_plaza/widgets/responsive_layout.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:path/path.dart' as path;
-// import 'package:car_plaza/app_colors.dart';
 
 class SellScreen extends StatefulWidget {
   const SellScreen({super.key});
 
   @override
-  _SellScreenState createState() => _SellScreenState();
+  State<SellScreen> createState() => _SellScreenState();
 }
 
 class _SellScreenState extends State<SellScreen> {
@@ -98,8 +96,8 @@ class _SellScreenState extends State<SellScreen> {
                 labelText: 'Title*',
                 border: OutlineInputBorder(),
               ),
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-              onSaved: (value) => _title = value!,
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+              onSaved: (value) => _title = value ?? '',
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -108,8 +106,8 @@ class _SellScreenState extends State<SellScreen> {
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-              onSaved: (value) => _description = value!,
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+              onSaved: (value) => _description = value ?? '',
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -119,24 +117,25 @@ class _SellScreenState extends State<SellScreen> {
               ),
               keyboardType: TextInputType.number,
               validator: (value) {
-                if (value!.isEmpty) return 'Required';
-                if (double.tryParse(value) == null) return 'Invalid number';
+                if (value?.isEmpty ?? true) return 'Required';
+                if (double.tryParse(value!) == null) return 'Invalid number';
                 return null;
               },
-              onSaved: (value) => _price = double.parse(value!),
+              onSaved: (value) => _price = double.tryParse(value ?? '0') ?? 0.0,
             ),
             const SizedBox(height: 12),
             _buildDropdownFormField<String>(
               value: _location,
               items: _locations,
-              onChanged: (value) => setState(() => _location = value!),
+              onChanged: (value) =>
+                  setState(() => _location = value ?? 'Lagos'),
               labelText: 'Location*',
             ),
             const SizedBox(height: 12),
             _buildDropdownFormField<String>(
               value: _brand,
               items: _brands,
-              onChanged: (value) => setState(() => _brand = value!),
+              onChanged: (value) => setState(() => _brand = value ?? 'Toyota'),
               labelText: 'Brand*',
             ),
             const SizedBox(height: 12),
@@ -145,35 +144,39 @@ class _SellScreenState extends State<SellScreen> {
                 labelText: 'Model*',
                 border: OutlineInputBorder(),
               ),
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-              onSaved: (value) => _model = value!,
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+              onSaved: (value) => _model = value ?? '',
             ),
             const SizedBox(height: 12),
             _buildDropdownFormField<int>(
               value: _year,
               items: List.generate(30, (index) => DateTime.now().year - index),
-              onChanged: (value) => setState(() => _year = value!),
+              onChanged: (value) =>
+                  setState(() => _year = value ?? DateTime.now().year),
               labelText: 'Year*',
             ),
             const SizedBox(height: 12),
             _buildDropdownFormField<String>(
               value: _condition,
               items: _conditions,
-              onChanged: (value) => setState(() => _condition = value!),
+              onChanged: (value) =>
+                  setState(() => _condition = value ?? 'Used'),
               labelText: 'Condition*',
             ),
             const SizedBox(height: 12),
             _buildDropdownFormField<String>(
               value: _transmission,
               items: _transmissions,
-              onChanged: (value) => setState(() => _transmission = value!),
+              onChanged: (value) =>
+                  setState(() => _transmission = value ?? 'Automatic'),
               labelText: 'Transmission*',
             ),
             const SizedBox(height: 12),
             _buildDropdownFormField<String>(
               value: _fuelType,
               items: _fuelTypes,
-              onChanged: (value) => setState(() => _fuelType = value!),
+              onChanged: (value) =>
+                  setState(() => _fuelType = value ?? 'Petrol'),
               labelText: 'Fuel Type*',
             ),
             const SizedBox(height: 12),
@@ -182,8 +185,8 @@ class _SellScreenState extends State<SellScreen> {
                 labelText: 'Mileage (km)*',
                 border: OutlineInputBorder(),
               ),
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-              onSaved: (value) => _mileage = value!,
+              validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+              onSaved: (value) => _mileage = value ?? '',
             ),
             const SizedBox(height: 20),
             if (_isUploading) ...[
@@ -339,7 +342,7 @@ class _SellScreenState extends State<SellScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error picking images: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error picking images: ${e.toString()}')),
       );
@@ -348,207 +351,240 @@ class _SellScreenState extends State<SellScreen> {
 
   Future<List<String>> _uploadImages(String userId) async {
     List<String> imageUrls = [];
-    setState(() {
-      _uploadStatus = 'Preparing to upload images...';
-      _uploadProgress = 0.0;
-    });
+    final storage = FirebaseStorage.instance;
 
     try {
       for (int i = 0; i < _imageFiles.length; i++) {
         final imageFile = _imageFiles[i];
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final filename = '${userId}_$timestamp$i.jpg';
+
         setState(() {
-          _uploadStatus =
-              'Uploading image ${i + 1} of ${_imageFiles.length}...';
+          _uploadStatus = 'Uploading image ${i + 1}/${_imageFiles.length}';
+          _uploadProgress = (i + 1) / _imageFiles.length;
         });
 
-        // Create a unique filename
-        final fileName =
-            'car_${DateTime.now().millisecondsSinceEpoch}_${i}_${userId.substring(0, min(userId.length, 4))}';
-        final fileExtension = path.extension(imageFile.path);
-        final fullFileName = '$fileName$fileExtension';
-
-        // Get reference to Firebase Storage
-        final Reference storageReference =
-            FirebaseStorage.instance.ref().child('car_images/$fullFileName');
-
-        // Set metadata
+        // Create metadata
         final metadata = SettableMetadata(
           contentType: 'image/jpeg',
-          customMetadata: {'userId': userId},
+          customMetadata: {'uploaderId': userId},
         );
 
-        // Create upload task
-        final UploadTask uploadTask =
-            storageReference.putFile(imageFile, metadata);
+        // Create reference
+        final ref = storage.ref().child('car_images').child(filename);
 
-        // Monitor upload progress
-        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-          double progress = snapshot.bytesTransferred / snapshot.totalBytes;
-          setState(() {
-            _uploadProgress = progress;
-          });
+        // Upload with progress tracking
+        final uploadTask = ref.putFile(imageFile, metadata);
+
+        // Listen for state changes
+        uploadTask.snapshotEvents.listen((taskSnapshot) {
           debugPrint(
-              'Upload progress for image $i: ${(progress * 100).toStringAsFixed(2)}%');
+              'Upload progress: ${taskSnapshot.bytesTransferred}/${taskSnapshot.totalBytes}');
         });
 
         // Wait for upload to complete
-        await uploadTask;
+        final taskSnapshot = await uploadTask;
+        final url = await taskSnapshot.ref.getDownloadURL();
 
-        // Get download URL
-        final String downloadUrl = await storageReference.getDownloadURL();
-        imageUrls.add(downloadUrl);
-
-        debugPrint('Image $i uploaded: $downloadUrl');
+        debugPrint('Image uploaded: $url');
+        imageUrls.add(url);
       }
-
-      setState(() {
-        _uploadStatus = 'All images uploaded successfully!';
-        _uploadProgress = 1.0;
-      });
-
       return imageUrls;
     } catch (e) {
-      setState(() {
-        _uploadStatus = 'Error: ${e.toString()}';
-      });
-      debugPrint('Error uploading images: $e');
-      throw Exception('Failed to upload images: $e');
+      debugPrint('Upload error: $e');
+      rethrow;
     }
   }
+//   Future<void> _submitForm(DatabaseService database, String? userId) async {
+//     if (userId == null) {
+//       if (!mounted) return;
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         const SnackBar(content: Text('You must be logged in to sell a car')),
+//       );
+//       return;
+//     }
+
+//     if (!_formKey.currentState!.validate()) return;
+//     _formKey.currentState!.save();
+
+//     if (_imageFiles.isEmpty) {
+//       if (!mounted) return;
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         const SnackBar(content: Text('Please upload at least one image')),
+//       );
+//       return;
+//     }
+
+//     setState(() {
+//       _isUploading = true;
+//       _uploadStatus = 'Starting submission...';
+//     });
+
+//     try {
+//       // 1. First check - verify user exists
+//       debugPrint('1. Checking user verification...');
+//       final userDoc = await FirebaseFirestore.instance
+//           .collection('users')
+//           .doc(userId)
+//           .get();
+
+//       if (!userDoc.exists) {
+//         throw Exception('User document not found');
+//       }
+
+//       if (!(userDoc.data()?['isVerifiedSeller'] ?? false)) {
+//         throw Exception('You must be a verified seller to list cars');
+//       }
+
+//       // 2. Upload images with progress tracking
+//       debugPrint('2. Starting image upload...');
+//       List<String> imageUrls = await _uploadImages(userId);
+//       debugPrint('3. Image upload complete. URLs: $imageUrls');
+
+//       // 3. Create car object
+//       debugPrint('4. Creating car object...');
+//       final newCar = Car(
+//         title: _title,
+//         description: _description,
+//         price: _price,
+//         location: _location,
+//         brand: _brand,
+//         model: _model,
+//         year: _year,
+//         condition: _condition,
+//         transmission: _transmission,
+//         fuelType: _fuelType,
+//         mileage: _mileage,
+//         images: imageUrls,
+//         sellerId: userId,
+//         postedDate: DateTime.now(),
+//       );
+
+//       // 4. Save to Firestore
+//       debugPrint('5. Saving to Firestore...');
+//       setState(() => _uploadStatus = 'Saving car details...');
+//       await database.addCar(newCar);
+//       debugPrint('6. Firestore save complete');
+
+//       // 5. Success
+//       if (!mounted) return;
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         const SnackBar(
+//           content: Text('Car listed successfully!'),
+//           backgroundColor: Colors.green,
+//         ),
+//       );
+
+//       // Reset form
+//       _resetForm();
+//     } catch (e) {
+//       debugPrint('ERROR: ${e.toString()}');
+//       if (!mounted) return;
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(
+//           content: Text('Submission failed: ${e.toString()}'),
+//           backgroundColor: Colors.red,
+//         ),
+//       );
+//     } finally {
+//       if (mounted) {
+//         setState(() {
+//           _isUploading = false;
+//           _uploadStatus = '';
+//         });
+//       }
+//     }
+//   }
+
+//   void _resetForm() {
+//     _formKey.currentState?.reset();
+//     setState(() {
+//       _imageFiles = [];
+//       _location = 'Lagos';
+//       _brand = 'Toyota';
+//       _year = DateTime.now().year;
+//       _condition = 'Used';
+//       _transmission = 'Automatic';
+//       _fuelType = 'Petrol';
+//     });
+//   }
+// }
 
   Future<void> _submitForm(DatabaseService database, String? userId) async {
-    // Add this at the beginning of your _submitForm method:
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please save your profile first'),
-          action: SnackBarAction(
-            label: 'Go to Profile',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            },
-          ),
-        ),
-      );
-      return;
-    }
-    if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be logged in to sell a car')),
+        const SnackBar(content: Text('Please login first')),
       );
       return;
     }
 
-    if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
-
-    if (_imageFiles.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please upload at least one image')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isUploading = true;
-      _uploadStatus = 'Starting submission process...';
-    });
+    setState(() => _isUploading = true);
 
     try {
-      debugPrint('Starting car submission process');
-      debugPrint('User ID: $userId');
-
-      // Check if user is verified
+      // 1. Check user verification status
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .get();
 
-      if (!userDoc.exists || !(userDoc.data()?['isVerifiedSeller'] ?? false)) {
-        throw Exception('You must be a verified seller to list cars');
+      if (!userDoc.exists) {
+        throw Exception('User profile not found');
       }
 
-      // Upload images using our improved method
-      List<String> imageUrls = await _uploadImages(userId);
-      debugPrint('All images uploaded successfully. Image URLs: $imageUrls');
+      if (!(userDoc.data()?['isVerifiedSeller'] ?? false)) {
+        throw Exception('Please complete your profile verification first');
+      }
 
-      // Create car object
-      final newCar = Car(
-        title: _title,
-        description: _description,
-        price: _price,
-        location: _location,
-        brand: _brand,
-        model: _model,
-        year: _year,
-        condition: _condition,
-        transmission: _transmission,
-        fuelType: _fuelType,
-        mileage: _mileage,
-        images: imageUrls,
-        sellerId: userId,
-        postedDate: DateTime.now(),
-      );
+      // 2. Upload images
+      final imageUrls = await _uploadImages(userId);
 
-      setState(() {
-        _uploadStatus = 'Saving car listing to database...';
+      // 3. Create car listing
+      await FirebaseFirestore.instance.collection('cars').add({
+        'title': _title,
+        'description': _description,
+        'price': _price,
+        'images': imageUrls,
+        'sellerId': userId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'active',
+        // Add other car fields...
       });
 
-      debugPrint('Created car object with data: ${newCar.toMap()}');
-
-      // Save to Firestore
-      final carId = await database.addCar(newCar);
-
-      if (carId == null) {
-        throw Exception('Failed to save car to database - returned null ID');
-      }
-
-      debugPrint('Car saved to database with ID: $carId');
-
-      // Success
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Car listed successfully!'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Car listed successfully!')),
       );
 
       // Reset form
-      _formKey.currentState!.reset();
-      setState(() {
-        _imageFiles = [];
-        _isUploading = false;
-        _uploadStatus = '';
-        _uploadProgress = 0.0;
-        _location = 'Lagos';
-        _brand = 'Toyota';
-        _year = DateTime.now().year;
-        _condition = 'Used';
-        _transmission = 'Automatic';
-        _fuelType = 'Petrol';
-      });
+      _resetForm();
     } catch (e) {
-      debugPrint('Error submitting car: $e');
+      debugPrint('ERROR: ${e.toString()}');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to submit: ${e.toString()}'),
+          content: Text('Submission failed: ${e.toString()}'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
         ),
       );
-      setState(() {
-        _isUploading = false;
-        _uploadStatus = '';
-        _uploadProgress = 0.0;
-      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _uploadStatus = '';
+        });
+      }
     }
   }
 
-  // Helper function for min
-  int min(int a, int b) {
-    return a < b ? a : b;
+  void _resetForm() {
+    _formKey.currentState?.reset();
+    setState(() {
+      _imageFiles = [];
+      _location = 'Lagos';
+      _brand = 'Toyota';
+      _year = DateTime.now().year;
+      _condition = 'Used';
+      _transmission = 'Automatic';
+      _fuelType = 'Petrol';
+    });
   }
 }
