@@ -269,16 +269,31 @@ class AuthService {
     }
   }
 
-  Future<User?> signInWithEmailAndPassword(
-      String email, String password) async {
+// In your AuthService class
+  Future<User?> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+    required String name,
+    required String phone,
+  }) async {
     try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
+      UserCredential credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return result.user;
+
+      // Create user profile in Firestore
+      await _firestore.collection('users').doc(credential.user!.uid).set({
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'isVerifiedSeller': false, // Default to false, admin can verify later
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return credential.user;
     } catch (e) {
-      print("Sign in error: $e");
+      print("Registration error: $e");
       return null;
     }
   }
