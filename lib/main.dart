@@ -60,8 +60,8 @@ void main() async {
 Future<void> setupFirstAdmin() async {
   try {
     // Replace with your admin email and password
-    const adminEmail = 'admin@example.com';
-    const adminPassword = 'securepassword123';
+    const adminEmail = 'Princenwanozie6666@gmail.com';
+    const adminPassword = 'Prince6666';
 
     // Create admin user in Firebase Auth
     final credential =
@@ -124,6 +124,7 @@ class AuthWrapper extends StatelessWidget {
 
     if (user == null) {
       // Return your login screen or onboarding
+
       return const HomeScreen(); // Or your auth screen
     }
 
