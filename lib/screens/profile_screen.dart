@@ -358,7 +358,7 @@
 // }
 
 // ignore_for_file: unused_import
-
+import 'package:car_plaza/screens/admin_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -378,6 +378,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   bool _isLoading = false;
+  bool _isAdmin = false;
+  bool _isVerifiedSeller = false;
 
   @override
   void initState() {
@@ -400,6 +402,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _nameController.text = userDoc['name'] ?? '';
           _emailController.text = userDoc['email'] ?? '';
           _phoneController.text = userDoc['phone'] ?? '';
+          _isAdmin = userDoc['isAdmin'] ?? false;
+          _isVerifiedSeller = userDoc['isVerifiedSeller'] ?? false;
         });
       }
     }
@@ -415,7 +419,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = auth.currentUser;
 
       if (user == null) {
-        // New user - should be handled by auth flow
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User not logged in')),
+        );
         return;
       }
 
@@ -423,47 +429,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'name': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
-        'isVerifiedSeller': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile saved successfully!')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile saved successfully!')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-// Add this to your _ProfileScreenState class
-Future<void> _verifySeller() async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
 
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .update({'isVerifiedSeller': true});
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Seller verification updated!')),
-  );
-}
-
-// Add this to your build method (for admin only)
-if (user.isAdmin) { // You'll need to implement isAdmin check
-  ElevatedButton(
-    onPressed: _verifySeller,
-    child: const Text('Verify Seller'),
-  );
-}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -474,33 +454,104 @@ if (user.isAdmin) { // You'll need to implement isAdmin check
           key: _formKey,
           child: Column(
             children: [
+              // Verification Status Badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: _isVerifiedSeller
+                      ? Colors.green[100]
+                      : Colors.orange[100],
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _isVerifiedSeller ? Icons.verified : Icons.pending,
+                      color: _isVerifiedSeller ? Colors.green : Colors.orange,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _isVerifiedSeller
+                          ? 'Verified Seller'
+                          : 'Pending Verification',
+                      style: TextStyle(
+                        color: _isVerifiedSeller ? Colors.green : Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Profile Form
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Full Name'),
+                decoration: const InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
+                ),
                 validator: (value) =>
                     value?.isEmpty ?? true ? 'Required' : null,
               ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) =>
                     value?.isEmpty ?? true ? 'Required' : null,
               ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'Phone'),
+                decoration: const InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(),
+                ),
                 keyboardType: TextInputType.phone,
                 validator: (value) =>
                     value?.isEmpty ?? true ? 'Required' : null,
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveProfile,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Save Profile'),
+              const SizedBox(height: 24),
+
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _saveProfile,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Save Profile'),
+                ),
               ),
+
+              // Admin Section (only visible to admins)
+              if (_isAdmin) ...[
+                const SizedBox(height: 24),
+                const Divider(),
+                const Text('Admin Tools',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const AdminScreen()),
+                    );
+                  },
+                  child: const Text('Seller Verification Panel'),
+                ),
+              ],
             ],
           ),
         ),

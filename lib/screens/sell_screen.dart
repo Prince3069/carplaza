@@ -516,15 +516,16 @@
 //     });
 //   }
 // }
-
 import 'dart:io';
 import 'package:car_plaza/constants/app_colors.dart';
+import 'package:car_plaza/models/car_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
+import 'package:car_plaza/services/database_service.dart';
 
 class SellScreen extends StatefulWidget {
   const SellScreen({super.key});
@@ -538,6 +539,7 @@ class _SellScreenState extends State<SellScreen> {
   List<File> _imageFiles = [];
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  String _uploadStatus = '';
 
   // Form fields
   String _title = '';
@@ -552,24 +554,53 @@ class _SellScreenState extends State<SellScreen> {
   String _fuelType = 'Petrol';
   String _mileage = '';
 
-  final List<String> _locations = [
-    'Lagos',
-    'Abuja',
-    'Port Harcourt',
-    'Kano',
-    'Enugu'
-  ];
-  final List<String> _brands = [
-    'Toyota',
-    'Honda',
-    'Nissan',
-    'Mercedes',
-    'BMW',
-    'Lexus'
-  ];
+  final List<String> _locations = ['Lagos', 'Abuja', 'Port Harcourt', 'Kano', 'Enugu'];
+  final List<String> _brands = ['Toyota', 'Honda', 'Nissan', 'Mercedes', 'BMW', 'Lexus'];
   final List<String> _conditions = ['New', 'Used', 'Foreign Used'];
   final List<String> _transmissions = ['Automatic', 'Manual'];
   final List<String> _fuelTypes = ['Petrol', 'Diesel', 'Hybrid', 'Electric'];
+
+  Future<void> _pickImages() async {
+    try {
+      final pickedFiles = await _picker.pickMultiImage();
+      if (pickedFiles != null) {
+        setState(() {
+          _imageFiles = pickedFiles.map((xfile) => File(xfile.path)).toList();
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking images: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<List<String>> _uploadImages(String userId) async {
+    List<String> imageUrls = [];
+    setState(() => _uploadStatus = 'Uploading images...');
+
+    try {
+      for (int i = 0; i < _imageFiles.length; i++) {
+        if (!mounted) return imageUrls;
+        setState(() => _uploadStatus = 'Uploading image ${i + 1}/${_imageFiles.length}');
+        
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final filename = '${userId}_$timestamp$i.jpg';
+        final ref = FirebaseStorage.instance.ref('car_images').child(filename);
+        await ref.putFile(_imageFiles[i]);
+        final url = await ref.getDownloadURL();
+        imageUrls.add(url);
+      }
+      return imageUrls;
+    } catch (e) {
+      if (!mounted) return imageUrls;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image upload failed: ${e.toString()}')),
+      );
+      rethrow;
+    }
+  }
 
   Future<void> _submitListing() async {
     if (!_formKey.currentState!.validate()) return;
@@ -577,49 +608,62 @@ class _SellScreenState extends State<SellScreen> {
 
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please login first')),
       );
       return;
     }
 
-    setState(() => _isUploading = true);
-
     try {
-      // Verify user exists and is verified
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
 
-      if (!userDoc.exists || !(userDoc.data()?['isVerifiedSeller'] ?? false)) {
-        throw Exception('Please complete your profile verification first');
+      if (!userDoc.exists || (userDoc.data()?['isVerifiedSeller'] as bool? != true)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please complete seller verification first'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
       }
 
-      // Upload images
-      final imageUrls = await _uploadImages(user.uid);
-
-      // Create car listing
-      await FirebaseFirestore.instance.collection('listings').add({
-        'userId': user.uid,
-        'name': userDoc['name'],
-        'email': userDoc['email'],
-        'phone': userDoc['phone'],
-        'title': _title,
-        'description': _description,
-        'price': _price,
-        'location': _location,
-        'brand': _brand,
-        'model': _model,
-        'year': _year,
-        'condition': _condition,
-        'transmission': _transmission,
-        'fuelType': _fuelType,
-        'mileage': _mileage,
-        'images': imageUrls,
-        'timestamp': FieldValue.serverTimestamp(),
+      setState(() {
+        _isUploading = true;
+        _uploadStatus = 'Starting submission...';
       });
 
+      if (!mounted) return;
+      setState(() => _uploadStatus = 'Uploading car images...');
+      final imageUrls = await _uploadImages(user.uid);
+
+      final newCar = Car(
+        title: _title,
+        description: _description,
+        price: _price,
+        location: _location,
+        brand: _brand,
+        model: _model,
+        year: _year,
+        condition: _condition,
+        transmission: _transmission,
+        fuelType: _fuelType,
+        mileage: _mileage,
+        images: imageUrls,
+        sellerId: user.uid,
+        postedDate: DateTime.now(),
+        isVerified: true,
+      );
+
+      if (!mounted) return;
+      setState(() => _uploadStatus = 'Saving car details...');
+      await Provider.of<DatabaseService>(context, listen: false).addCar(newCar);
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Car listed successfully!'),
@@ -629,6 +673,7 @@ class _SellScreenState extends State<SellScreen> {
 
       _resetForm();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${e.toString()}'),
@@ -636,44 +681,19 @@ class _SellScreenState extends State<SellScreen> {
         ),
       );
     } finally {
-      if (mounted) setState(() => _isUploading = false);
-    }
-  }
-
-  Future<List<String>> _uploadImages(String userId) async {
-    List<String> imageUrls = [];
-
-    for (int i = 0; i < _imageFiles.length; i++) {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filename = '${userId}_$timestamp$i.jpg';
-      final ref = FirebaseStorage.instance.ref('car_images').child(filename);
-      await ref.putFile(_imageFiles[i]);
-      final url = await ref.getDownloadURL();
-      imageUrls.add(url);
-    }
-
-    return imageUrls;
-  }
-
-  Future<void> _pickImages() async {
-    try {
-      final pickedFiles = await _picker.pickMultiImage();
-      if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      if (mounted) {
         setState(() {
-          _imageFiles = pickedFiles.map((xfile) => File(xfile.path)).toList();
+          _isUploading = false;
+          _uploadStatus = '';
         });
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking images: ${e.toString()}')),
-      );
     }
   }
 
   void _resetForm() {
     _formKey.currentState?.reset();
     setState(() {
-      _imageFiles = [];
+      _imageFiles.clear();
       _location = 'Lagos';
       _brand = 'Toyota';
       _year = DateTime.now().year;
@@ -681,6 +701,28 @@ class _SellScreenState extends State<SellScreen> {
       _transmission = 'Automatic';
       _fuelType = 'Petrol';
     });
+  }
+
+  Widget _buildDropdown<T>(
+    String label,
+    T value,
+    List<T> items,
+    ValueChanged<T?> onChanged,
+  ) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      items: items.map((item) {
+        return DropdownMenuItem<T>(
+          value: item,
+          child: Text(item.toString()),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+    );
   }
 
   @override
@@ -696,96 +738,89 @@ class _SellScreenState extends State<SellScreen> {
             children: [
               _buildImageUploadSection(),
               const SizedBox(height: 20),
+
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Title*'),
-                validator: (value) =>
-                    value?.isEmpty ?? true ? 'Required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Title*',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                 onSaved: (value) => _title = value ?? '',
               ),
               const SizedBox(height: 12),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Description*'),
+                decoration: const InputDecoration(
+                  labelText: 'Description*',
+                  border: OutlineInputBorder(),
+                ),
                 maxLines: 3,
-                validator: (value) =>
-                    value?.isEmpty ?? true ? 'Required' : null,
+                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                 onSaved: (value) => _description = value ?? '',
               ),
               const SizedBox(height: 12),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Price (₦)*'),
+                decoration: const InputDecoration(
+                  labelText: 'Price (₦)*',
+                  border: OutlineInputBorder(),
+                ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value?.isEmpty ?? true) return 'Required';
-                  if (double.tryParse(value!) == null) return 'Invalid number';
+                  if (value == null || value.isEmpty) return 'Required';
+                  if (double.tryParse(value) == null) return 'Invalid number';
                   return null;
                 },
-                onSaved: (value) =>
-                    _price = double.tryParse(value ?? '0') ?? 0.0,
+                onSaved: (value) => _price = double.tryParse(value ?? '0') ?? 0.0,
               ),
               const SizedBox(height: 12),
-              _buildDropdownFormField<String>(
-                value: _location,
-                items: _locations,
-                onChanged: (value) =>
-                    setState(() => _location = value ?? 'Lagos'),
-                labelText: 'Location*',
-              ),
+              _buildDropdown<String>('Location*', _location, _locations, (value) => _location = value ?? 'Lagos'),
               const SizedBox(height: 12),
-              _buildDropdownFormField<String>(
-                value: _brand,
-                items: _brands,
-                onChanged: (value) =>
-                    setState(() => _brand = value ?? 'Toyota'),
-                labelText: 'Brand*',
-              ),
+              _buildDropdown<String>('Brand*', _brand, _brands, (value) => _brand = value ?? 'Toyota'),
               const SizedBox(height: 12),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Model*'),
-                validator: (value) =>
-                    value?.isEmpty ?? true ? 'Required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Model*',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                 onSaved: (value) => _model = value ?? '',
               ),
               const SizedBox(height: 12),
-              _buildDropdownFormField<int>(
-                value: _year,
-                items:
-                    List.generate(30, (index) => DateTime.now().year - index),
-                onChanged: (value) =>
-                    setState(() => _year = value ?? DateTime.now().year),
-                labelText: 'Year*',
+              _buildDropdown<int>(
+                'Year*', 
+                _year, 
+                List.generate(30, (index) => DateTime.now().year - index),
+                (value) => setState(() => _year = value ?? DateTime.now().year),
               ),
               const SizedBox(height: 12),
-              _buildDropdownFormField<String>(
-                value: _condition,
-                items: _conditions,
-                onChanged: (value) =>
-                    setState(() => _condition = value ?? 'Used'),
-                labelText: 'Condition*',
-              ),
+              _buildDropdown<String>('Condition*', _condition, _conditions, (value) => _condition = value ?? 'Used'),
               const SizedBox(height: 12),
-              _buildDropdownFormField<String>(
-                value: _transmission,
-                items: _transmissions,
-                onChanged: (value) =>
-                    setState(() => _transmission = value ?? 'Automatic'),
-                labelText: 'Transmission*',
-              ),
+              _buildDropdown<String>('Transmission*', _transmission, _transmissions, (value) => _transmission = value ?? 'Automatic'),
               const SizedBox(height: 12),
-              _buildDropdownFormField<String>(
-                value: _fuelType,
-                items: _fuelTypes,
-                onChanged: (value) =>
-                    setState(() => _fuelType = value ?? 'Petrol'),
-                labelText: 'Fuel Type*',
-              ),
+              _buildDropdown<String>('Fuel Type*', _fuelType, _fuelTypes, (value) => _fuelType = value ?? 'Petrol'),
               const SizedBox(height: 12),
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Mileage (km)*'),
-                validator: (value) =>
-                    value?.isEmpty ?? true ? 'Required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Mileage (km)*',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) => value == null || value.isEmpty ? 'Required' : null,
                 onSaved: (value) => _mileage = value ?? '',
               ),
               const SizedBox(height: 20),
+
+              if (_isUploading) ...[
+                const LinearProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _uploadStatus,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               ElevatedButton(
                 onPressed: _isUploading ? null : _submitListing,
                 style: ElevatedButton.styleFrom(
@@ -798,38 +833,14 @@ class _SellScreenState extends State<SellScreen> {
                         children: [
                           CircularProgressIndicator(color: Colors.white),
                           SizedBox(width: 10),
-                          Text('Submitting...',
-                              style: TextStyle(color: Colors.white)),
+                          Text('Submitting...', style: TextStyle(color: Colors.white)),
                         ],
                       )
-                    : const Text('Submit Car Listing',
-                        style: TextStyle(color: Colors.white)),
+                    : const Text('Submit Car Listing', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildDropdownFormField<T>({
-    required T value,
-    required List<T> items,
-    required ValueChanged<T?> onChanged,
-    required String labelText,
-  }) {
-    return DropdownButtonFormField<T>(
-      value: value,
-      items: items.map((item) {
-        return DropdownMenuItem<T>(
-          value: item,
-          child: Text(item.toString()),
-        );
-      }).toList(),
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: labelText,
-        border: const OutlineInputBorder(),
       ),
     );
   }
@@ -867,11 +878,7 @@ class _SellScreenState extends State<SellScreen> {
                         top: 0,
                         right: 0,
                         child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _imageFiles.removeAt(index);
-                            });
-                          },
+                          onTap: () => setState(() => _imageFiles.removeAt(index)),
                           child: Container(
                             padding: const EdgeInsets.all(2),
                             decoration: BoxDecoration(
@@ -905,9 +912,7 @@ class _SellScreenState extends State<SellScreen> {
             ),
             if (_imageFiles.isNotEmpty)
               TextButton(
-                onPressed: _isUploading
-                    ? null
-                    : () => setState(() => _imageFiles.clear()),
+                onPressed: _isUploading ? null : () => setState(() => _imageFiles.clear()),
                 child: const Text('Clear All'),
               ),
           ],
