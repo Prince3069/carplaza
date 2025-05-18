@@ -232,7 +232,6 @@
 //     }
 //   }
 // }
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -258,7 +257,8 @@ class AuthService {
         'name': name,
         'email': email,
         'phone': phone,
-        'isVerifiedSeller': true,
+        'isVerifiedSeller': false, // Default to false
+        'isAdmin': false, // Default to false
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -269,31 +269,16 @@ class AuthService {
     }
   }
 
-// In your AuthService class
-  Future<User?> signInWithEmailAndPassword({
-    required String email,
-    required String password,
-    required String name,
-    required String phone,
-  }) async {
+  Future<User?> signInWithEmailAndPassword(
+      String email, String password) async {
     try {
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+      UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      // Create user profile in Firestore
-      await _firestore.collection('users').doc(credential.user!.uid).set({
-        'name': name,
-        'email': email,
-        'phone': phone,
-        'isVerifiedSeller': false, // Default to false, admin can verify later
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      return credential.user;
+      return result.user;
     } catch (e) {
-      print("Registration error: $e");
+      print("Sign in error: $e");
       return null;
     }
   }
@@ -302,16 +287,10 @@ class AuthService {
     await _auth.signOut();
   }
 
-  Future<void> updateProfile({
-    required String userId,
-    required String name,
-    required String phone,
-  }) async {
+  Future<void> verifySeller(String userId) async {
     await _firestore.collection('users').doc(userId).update({
-      'name': name,
-      'phone': phone,
       'isVerifiedSeller': true,
-      'updatedAt': FieldValue.serverTimestamp(),
+      'verifiedAt': FieldValue.serverTimestamp(),
     });
   }
 }
