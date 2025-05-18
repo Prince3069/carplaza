@@ -57,12 +57,18 @@ void main() async {
 }
 
 Future<bool> _checkAdminExists() async {
-  final snapshot = await FirebaseFirestore.instance
-      .collection('users')
-      .where('isAdmin', isEqualTo: true)
-      .limit(1)
-      .get();
-  return snapshot.docs.isNotEmpty;
+  try {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .where('isAdmin', isEqualTo: true)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
+  } catch (e) {
+    print('Error checking admin existence: $e');
+    // If we can't check, assume admin exists to prevent setup loop
+    return true;
+  }
 }
 
 class MyApp extends StatelessWidget {
