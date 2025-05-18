@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_null_comparison
+// ignore_for_file: unnecessary_null_comparison, unused_local_variable
 
 import 'dart:io';
 import 'package:car_plaza/constants/app_colors.dart';
@@ -358,12 +358,11 @@ class _SellScreenState extends State<SellScreen> {
       throw Exception('User not authenticated');
     }
 
-    // Get fresh ID token
+    // Force token refresh
     final idToken = await user.getIdToken(true);
 
     for (int i = 0; i < _imageFiles.length; i++) {
       try {
-        final imageFile = _imageFiles[i];
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final filename = '${userId}_$timestamp$i.jpg';
 
@@ -371,16 +370,13 @@ class _SellScreenState extends State<SellScreen> {
           _uploadStatus = 'Uploading image ${i + 1}/${_imageFiles.length}';
         });
 
+        // Simplified metadata - removed custom authToken
         final metadata = SettableMetadata(
           contentType: 'image/jpeg',
-          customMetadata: {
-            'uploaderId': userId,
-            'authToken': idToken!,
-          },
         );
 
         final ref = FirebaseStorage.instance.ref('car_images').child(filename);
-        final uploadTask = ref.putFile(imageFile, metadata);
+        final uploadTask = ref.putFile(_imageFiles[i], metadata);
 
         uploadTask.snapshotEvents.listen((taskSnapshot) {
           setState(() {

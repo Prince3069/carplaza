@@ -1,1 +1,9 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"car-plaza-b9689","appId":"1:74696492122:android:1405e6be9692ab40c88463","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"car-plaza-b9689","configurations":{"android":"1:74696492122:android:1405e6be9692ab40c88463","ios":"1:74696492122:ios:4e8202a50f28d837c88463","macos":"1:74696492122:ios:4e8202a50f28d837c88463","web":"1:74696492122:web:de25f54499c71a4ec88463","windows":"1:74696492122:web:341fba7065e8cc89c88463"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
