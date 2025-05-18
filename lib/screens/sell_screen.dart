@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:car_plaza/constants/app_colors.dart';
-import 'package:car_plaza/screens/profile_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -351,220 +350,151 @@ class _SellScreenState extends State<SellScreen> {
 
   Future<List<String>> _uploadImages(String userId) async {
     List<String> imageUrls = [];
-    final storage = FirebaseStorage.instance;
+    final user = FirebaseAuth.instance.currentUser;
 
-    try {
-      for (int i = 0; i < _imageFiles.length; i++) {
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
+
+    // Get fresh ID token
+    final idToken = await user.getIdToken(true);
+
+    for (int i = 0; i < _imageFiles.length; i++) {
+      try {
         final imageFile = _imageFiles[i];
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final filename = '${userId}_$timestamp$i.jpg';
 
         setState(() {
           _uploadStatus = 'Uploading image ${i + 1}/${_imageFiles.length}';
-          _uploadProgress = (i + 1) / _imageFiles.length;
         });
 
-        // Create metadata
         final metadata = SettableMetadata(
           contentType: 'image/jpeg',
-          customMetadata: {'uploaderId': userId},
+          customMetadata: {
+            'uploaderId': userId,
+            'authToken': idToken!,
+          },
         );
 
-        // Create reference
-        final ref = storage.ref().child('car_images').child(filename);
-
-        // Upload with progress tracking
+        final ref = FirebaseStorage.instance.ref('car_images').child(filename);
         final uploadTask = ref.putFile(imageFile, metadata);
 
-        // Listen for state changes
         uploadTask.snapshotEvents.listen((taskSnapshot) {
-          debugPrint(
-              'Upload progress: ${taskSnapshot.bytesTransferred}/${taskSnapshot.totalBytes}');
+          setState(() {
+            _uploadProgress =
+                taskSnapshot.bytesTransferred / taskSnapshot.totalBytes;
+          });
         });
 
-        // Wait for upload to complete
         final taskSnapshot = await uploadTask;
         final url = await taskSnapshot.ref.getDownloadURL();
-
-        debugPrint('Image uploaded: $url');
         imageUrls.add(url);
+      } catch (e) {
+        debugPrint('Error uploading image: $e');
+        rethrow;
       }
-      return imageUrls;
-    } catch (e) {
-      debugPrint('Upload error: $e');
-      rethrow;
     }
+    return imageUrls;
   }
-//   Future<void> _submitForm(DatabaseService database, String? userId) async {
-//     if (userId == null) {
-//       if (!mounted) return;
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(content: Text('You must be logged in to sell a car')),
-//       );
-//       return;
-//     }
-
-//     if (!_formKey.currentState!.validate()) return;
-//     _formKey.currentState!.save();
-
-//     if (_imageFiles.isEmpty) {
-//       if (!mounted) return;
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(content: Text('Please upload at least one image')),
-//       );
-//       return;
-//     }
-
-//     setState(() {
-//       _isUploading = true;
-//       _uploadStatus = 'Starting submission...';
-//     });
-
-//     try {
-//       // 1. First check - verify user exists
-//       debugPrint('1. Checking user verification...');
-//       final userDoc = await FirebaseFirestore.instance
-//           .collection('users')
-//           .doc(userId)
-//           .get();
-
-//       if (!userDoc.exists) {
-//         throw Exception('User document not found');
-//       }
-
-//       if (!(userDoc.data()?['isVerifiedSeller'] ?? false)) {
-//         throw Exception('You must be a verified seller to list cars');
-//       }
-
-//       // 2. Upload images with progress tracking
-//       debugPrint('2. Starting image upload...');
-//       List<String> imageUrls = await _uploadImages(userId);
-//       debugPrint('3. Image upload complete. URLs: $imageUrls');
-
-//       // 3. Create car object
-//       debugPrint('4. Creating car object...');
-//       final newCar = Car(
-//         title: _title,
-//         description: _description,
-//         price: _price,
-//         location: _location,
-//         brand: _brand,
-//         model: _model,
-//         year: _year,
-//         condition: _condition,
-//         transmission: _transmission,
-//         fuelType: _fuelType,
-//         mileage: _mileage,
-//         images: imageUrls,
-//         sellerId: userId,
-//         postedDate: DateTime.now(),
-//       );
-
-//       // 4. Save to Firestore
-//       debugPrint('5. Saving to Firestore...');
-//       setState(() => _uploadStatus = 'Saving car details...');
-//       await database.addCar(newCar);
-//       debugPrint('6. Firestore save complete');
-
-//       // 5. Success
-//       if (!mounted) return;
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text('Car listed successfully!'),
-//           backgroundColor: Colors.green,
-//         ),
-//       );
-
-//       // Reset form
-//       _resetForm();
-//     } catch (e) {
-//       debugPrint('ERROR: ${e.toString()}');
-//       if (!mounted) return;
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(
-//           content: Text('Submission failed: ${e.toString()}'),
-//           backgroundColor: Colors.red,
-//         ),
-//       );
-//     } finally {
-//       if (mounted) {
-//         setState(() {
-//           _isUploading = false;
-//           _uploadStatus = '';
-//         });
-//       }
-//     }
-//   }
-
-//   void _resetForm() {
-//     _formKey.currentState?.reset();
-//     setState(() {
-//       _imageFiles = [];
-//       _location = 'Lagos';
-//       _brand = 'Toyota';
-//       _year = DateTime.now().year;
-//       _condition = 'Used';
-//       _transmission = 'Automatic';
-//       _fuelType = 'Petrol';
-//     });
-//   }
-// }
 
   Future<void> _submitForm(DatabaseService database, String? userId) async {
     if (userId == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please login first')),
       );
       return;
     }
 
-    setState(() => _isUploading = true);
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
+
+    if (_imageFiles.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload at least one image')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isUploading = true;
+      _uploadStatus = 'Starting submission...';
+    });
 
     try {
-      // 1. Check user verification status
+      // Verify user exists and is verified
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .get();
 
-      if (!userDoc.exists) {
-        throw Exception('User profile not found');
-      }
-
-      if (!(userDoc.data()?['isVerifiedSeller'] ?? false)) {
+      if (!userDoc.exists || !(userDoc.data()?['isVerifiedSeller'] ?? false)) {
         throw Exception('Please complete your profile verification first');
       }
 
-      // 2. Upload images
+      // Upload images
       final imageUrls = await _uploadImages(userId);
 
-      // 3. Create car listing
-      await FirebaseFirestore.instance.collection('cars').add({
-        'title': _title,
-        'description': _description,
-        'price': _price,
-        'images': imageUrls,
-        'sellerId': userId,
-        'createdAt': FieldValue.serverTimestamp(),
-        'status': 'active',
-        // Add other car fields...
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Car listed successfully!')),
+      // Create car listing
+      final newCar = Car(
+        title: _title,
+        description: _description,
+        price: _price,
+        location: _location,
+        brand: _brand,
+        model: _model,
+        year: _year,
+        condition: _condition,
+        transmission: _transmission,
+        fuelType: _fuelType,
+        mileage: _mileage,
+        images: imageUrls,
+        sellerId: userId,
+        postedDate: DateTime.now(),
       );
 
-      // Reset form
-      _resetForm();
-    } catch (e) {
-      debugPrint('ERROR: ${e.toString()}');
+      setState(() => _uploadStatus = 'Saving car details...');
+      await database.addCar(newCar);
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Submission failed: ${e.toString()}'),
-          backgroundColor: Colors.red,
+        const SnackBar(
+          content: Text('Car listed successfully!'),
+          backgroundColor: Colors.green,
         ),
       );
+
+      _resetForm();
+    } on FirebaseException catch (e) {
+      if (e.code == 'storage/unauthorized') {
+        await FirebaseAuth.instance.signOut();
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/login',
+            (route) => false,
+          );
+        }
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.message ?? 'Unknown error'}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

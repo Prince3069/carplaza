@@ -25,7 +25,7 @@ class RouteManager {
       case profilePage:
         return MaterialPageRoute(builder: (_) => const ProfileScreen());
       default:
-        throw FormatException('Route not found! Check routes again!');
+        throw const FormatException('Route not found! Check routes again!');
     }
   }
 }

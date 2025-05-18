@@ -92,6 +92,8 @@
 //   }
 // }
 
+// ignore_for_file: library_private_types_in_public_api, deprecated_member_use
+
 import 'package:car_plaza/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/widgets/responsive_layout.dart';
@@ -106,9 +108,9 @@ class SearchScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveLayout(
-      mobileBody: const SearchContent(),
-      tabletBody: const SearchContent(),
+    return const ResponsiveLayout(
+      mobileBody: SearchContent(),
+      tabletBody: SearchContent(),
       desktopBody: Center(
         child: SizedBox(
           width: 1000,

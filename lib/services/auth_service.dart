@@ -164,6 +164,8 @@
 //     }
 //   }
 
+// ignore_for_file: avoid_print
+
 //   // Optional: Password reset
 //   Future<void> sendPasswordResetEmail(String email) async {
 //     try {
