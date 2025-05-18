@@ -298,7 +298,6 @@ class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Get all cars stream
   Stream<List<Car>> get cars {
     return _firestore
         .collection('listings')
@@ -310,7 +309,6 @@ class DatabaseService {
             .toList());
   }
 
-  // Search cars with filters
   Stream<List<Car>> searchCars({
     String? query,
     String? brand,
@@ -353,14 +351,11 @@ class DatabaseService {
       collection = collection.where('year', isLessThanOrEqualTo: maxYear);
     }
 
-    return collection.orderBy('postedDate', descending: true).snapshots().map(
-        (snapshot) => snapshot.docs
-            .map((doc) =>
-                Car.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
+    return collection.snapshots().map((snapshot) => snapshot.docs
+        .map((doc) => Car.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+        .toList());
   }
 
-  // Upload car images to storage
   Future<List<String>> uploadCarImages(
       List<File> imageFiles, String userId) async {
     List<String> downloadUrls = [];
@@ -377,33 +372,12 @@ class DatabaseService {
     return downloadUrls;
   }
 
-  // Get user listings
-  Stream<List<Car>> getUserListings(String userId) {
-    return _firestore
-        .collection('listings')
-        .where('sellerId', isEqualTo: userId)
-        .orderBy('postedDate', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) =>
-                Car.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-            .toList());
-  }
-
-  // Get single car by ID
-  Future<Car?> getCarById(String carId) async {
-    final doc = await _firestore.collection('listings').doc(carId).get();
-    if (!doc.exists) return null;
-    return Car.fromMap(doc.id, doc.data() as Map<String, dynamic>);
-  }
-
-  // Delete a car listing
-  Future<void> deleteCar(String carId) async {
-    await _firestore.collection('listings').doc(carId).delete();
-  }
-
-  // Add a new car listing
   Future<void> addCar(Car car) async {
     await _firestore.collection('listings').add(car.toMap());
+  }
+
+  Future<Map<String, dynamic>?> getUserData(String userId) async {
+    final doc = await _firestore.collection('users').doc(userId).get();
+    return doc.data();
   }
 }
