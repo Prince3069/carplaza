@@ -1,5 +1,4 @@
-// TODO Implement this library.
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, unused_field, unnecessary_cast
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -41,7 +40,7 @@ class FirebaseService {
       await _auth.signOut();
     } catch (e) {
       print('Sign out error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -83,7 +82,7 @@ class FirebaseService {
           .update(car.toMap());
     } catch (e) {
       print('Update car error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -92,7 +91,7 @@ class FirebaseService {
       await _firestore.collection(carsCollection).doc(carId).delete();
     } catch (e) {
       print('Delete car error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -149,7 +148,7 @@ class FirebaseService {
       }
     } catch (e) {
       print('Upload images error: $e');
-      throw e;
+      rethrow;
     }
 
     return downloadUrls;
@@ -161,7 +160,7 @@ class FirebaseService {
       await ref.delete();
     } catch (e) {
       print('Delete image error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -175,7 +174,7 @@ class FirebaseService {
           .set(user.toMap());
     } catch (e) {
       print('Create user error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -187,7 +186,7 @@ class FirebaseService {
           .update(user.toMap());
     } catch (e) {
       print('Update user error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -273,7 +272,7 @@ class FirebaseService {
       });
     } catch (e) {
       print('Verify seller error: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -284,7 +283,7 @@ class FirebaseService {
       });
     } catch (e) {
       print('Verify car listing error: $e');
-      throw e;
+      rethrow;
     }
   }
 }
