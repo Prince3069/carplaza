@@ -294,49 +294,45 @@ import 'package:car_plaza/models/car_model.dart';
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Add a new car listing
   Future<void> addCar(Car car) async {
     try {
-      await _firestore.collection('listings').add({
-        'userId': car.userId,
-        'title': car.title,
-        'model': car.model,
-        'year': car.year,
-        'condition': car.condition,
-        'transmission': car.transmission,
-        'fuelType': car.fuelType,
-        'mileage': car.mileage,
-        'price': car.price,
-        'location': car.location,
-        'images': car.images,
-        'description': car.description,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _firestore.collection('listings').add(car.toMap());
     } catch (e) {
-      print('Error adding car: $e');
-      rethrow;
+      throw Exception('Failed to add car: $e');
     }
   }
 
-  // Get stream of all cars
   Stream<List<Car>> get cars {
     return _firestore
         .collection('listings')
-        .orderBy('createdAt', descending: true)
+        .orderBy('postedDate', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => Car.fromFirestore(doc.data(), doc.id))
+            .map((doc) => Car.fromMap(doc.data(), doc.id))
             .toList());
   }
 
-  // Delete a car listing
+  Future<List<Car>> searchCars(String query) async {
+    try {
+      final snapshot = await _firestore
+          .collection('listings')
+          .where('brand', isGreaterThanOrEqualTo: query)
+          .where('brand', isLessThan: query + 'z')
+          .get();
+
+      return snapshot.docs
+          .map((doc) => Car.fromMap(doc.data(), doc.id))
+          .toList();
+    } catch (e) {
+      throw Exception('Failed to search cars: $e');
+    }
+  }
+
   Future<void> deleteCar(String carId) async {
     try {
       await _firestore.collection('listings').doc(carId).delete();
     } catch (e) {
-      print('Error deleting car: $e');
-      rethrow;
+      throw Exception('Failed to delete car: $e');
     }
   }
 }
