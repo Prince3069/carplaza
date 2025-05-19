@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/services/auth_service.dart';
 
@@ -25,8 +25,8 @@ class AdminScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final user = snapshot.data!.docs[index];
               return ListTile(
-                title: Text(user['name']),
-                subtitle: Text(user['email']),
+                title: Text(user['name'] ?? 'No name'),
+                subtitle: Text(user['email'] ?? 'No email'),
                 trailing: IconButton(
                   icon: const Icon(Icons.verified),
                   onPressed: () {
