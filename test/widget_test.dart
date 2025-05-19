@@ -26,7 +26,7 @@ void main() {
           ),
         ],
         child: const MaterialApp(
-          home: MyApp(needsAdminSetup: false), // Explicit bool value
+          home: MyApp(), // Explicit bool value
         ),
       ),
     );
