@@ -239,13 +239,35 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Get current user
   User? get currentUser => _auth.currentUser;
-
-  // Auth state changes stream
   Stream<User?> get user => _auth.authStateChanges();
 
-  // Register new user
+  // Add this method to check admin status
+  Future<bool> isAdmin() async {
+    if (currentUser == null) return false;
+    try {
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(currentUser!.uid).get();
+      return doc.data()?['isAdmin'] == true;
+    } catch (e) {
+      print('Error checking admin status: $e');
+      return false;
+    }
+  }
+
+  // Add this method to verify sellers
+  Future<void> verifySeller(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'isVerifiedSeller': true,
+        'verifiedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error verifying seller: $e');
+      rethrow;
+    }
+  }
+
   Future<User?> registerWithEmailAndPassword({
     required String email,
     required String password,
@@ -276,7 +298,6 @@ class AuthService {
     }
   }
 
-  // Sign in existing user
   Future<User?> signInWithEmailAndPassword(
       String email, String password) async {
     try {
@@ -291,60 +312,35 @@ class AuthService {
     }
   }
 
-  Future<bool> isAdmin() async {
-    try {
-      if (currentUser == null) return false;
-      final doc =
-          await _firestore.collection('users').doc(currentUser!.uid).get();
-      return doc.data()?['isAdmin'] == true;
-    } catch (e) {
-      print('Error checking admin status: $e');
-      return false;
-    }
-  }
-
-  // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  // Verify seller (admin function)
-  Future<void> verifySeller(String userId) async {
-    await _firestore.collection('users').doc(userId).update({
-      'isVerifiedSeller': true,
-      'verifiedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  // Make user admin (admin function)
-  Future<void> makeAdmin(String userId) async {
-    await _firestore.collection('users').doc(userId).update({
-      'isAdmin': true,
-      'isVerifiedSeller': true,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  // Update user profile
   Future<void> updateProfile({
     required String userId,
     required String name,
     required String phone,
   }) async {
-    await _firestore.collection('users').doc(userId).update({
-      'name': name,
-      'phone': phone,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'name': name,
+        'phone': phone,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print("Error updating profile: $e");
+      rethrow;
+    }
   }
 
-  // Password reset
-  Future<void> sendPasswordResetEmail(String email) async {
+  Future<Map<String, dynamic>?> getUserData(String userId) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(userId).get();
+      return doc.data() as Map<String, dynamic>?;
     } catch (e) {
-      print("Error sending password reset email: $e");
-      rethrow;
+      print("Error getting user data: $e");
+      return null;
     }
   }
 }
