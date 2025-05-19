@@ -422,16 +422,15 @@ class AuthService {
   User? get currentUser => _auth.currentUser;
   Stream<User?> get user => _auth.authStateChanges();
 
-  Future<User?> registerWithEmailAndPassword({
+  Future<User?> registerUser({
     required String email,
     required String password,
     required String name,
     required String phone,
     bool isAdmin = false,
-    bool isVerifiedSeller = false,
   }) async {
     try {
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -440,38 +439,23 @@ class AuthService {
         'name': name,
         'email': email,
         'phone': phone,
-        'isVerifiedSeller': isVerifiedSeller,
         'isAdmin': isAdmin,
+        'isVerifiedSeller': isAdmin, // Admins are automatically verified
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       return credential.user;
-    } on FirebaseAuthException catch (e) {
-      throw FirebaseAuthException(code: e.code, message: e.message);
+    } catch (e) {
+      print("Registration error: $e");
+      return null;
     }
-  }
-
-  Future<User?> signInWithEmailAndPassword(
-      String email, String password) async {
-    try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return result.user;
-    } on FirebaseAuthException catch (e) {
-      throw FirebaseAuthException(code: e.code, message: e.message);
-    }
-  }
-
-  Future<void> signOut() async {
-    await _auth.signOut();
   }
 
   Future<bool> isAdmin() async {
-    if (currentUser == null) return false;
-    final doc =
-        await _firestore.collection('users').doc(currentUser!.uid).get();
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    final doc = await _firestore.collection('users').doc(user.uid).get();
     return doc.data()?['isAdmin'] == true;
   }
 
