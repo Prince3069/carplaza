@@ -550,8 +550,8 @@ class _SellFormState extends State<SellForm> {
   final List<File> _images = [];
   bool _isSubmitting = false;
 
-  // Controllers for form fields
-  final _titleController = TextEditingController();
+  // Controllers
+  final _brandController = TextEditingController();
   final _modelController = TextEditingController();
   final _yearController = TextEditingController();
   final _priceController = TextEditingController();
@@ -570,15 +570,17 @@ class _SellFormState extends State<SellForm> {
         imageQuality: 85,
       );
 
-      if (pickedFiles.isNotEmpty) {
+      if (pickedFiles != null && pickedFiles.isNotEmpty) {
         setState(() {
           _images.addAll(pickedFiles.map((file) => File(file.path)));
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking images: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking images: $e')),
+        );
+      }
     }
   }
 
@@ -593,8 +595,7 @@ class _SellFormState extends State<SellForm> {
         await ref.putFile(image);
         imageUrls.add(await ref.getDownloadURL());
       } catch (e) {
-        print('Error uploading image: $e');
-        rethrow;
+        throw Exception('Failed to upload image: $e');
       }
     }
 
@@ -604,9 +605,11 @@ class _SellFormState extends State<SellForm> {
   Future<void> _submitListing() async {
     if (!_formKey.currentState!.validate()) return;
     if (_images.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one image')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please add at least one image')),
+        );
+      }
       return;
     }
 
@@ -619,13 +622,11 @@ class _SellFormState extends State<SellForm> {
 
       if (user == null) throw Exception('User not logged in');
 
-      // 1. Upload images
       final imageUrls = await _uploadImages(user.uid);
 
-      // 2. Create car object
       final car = Car(
         userId: user.uid,
-        title: _titleController.text.trim(),
+        brand: _brandController.text.trim(),
         model: _modelController.text.trim(),
         year: int.parse(_yearController.text.trim()),
         condition: _condition,
@@ -634,33 +635,36 @@ class _SellFormState extends State<SellForm> {
         mileage: int.parse(_mileageController.text.trim()),
         price: double.parse(_priceController.text.trim()),
         location: _locationController.text.trim(),
-        description: _descriptionController.text.trim(),
         images: imageUrls,
-        createdAt: DateTime.now(),
+        description: _descriptionController.text.trim(),
+        postedDate: DateTime.now(),
       );
 
-      // 3. Save to Firestore
       await database.addCar(car);
 
-      // 4. Reset form
-      _formKey.currentState!.reset();
-      setState(() => _images.clear());
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Car listed successfully!')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Car listed successfully!')),
+        );
+        _formKey.currentState!.reset();
+        setState(() => _images.clear());
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to list car: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to list car: $e')),
+        );
+      }
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
+    _brandController.dispose();
     _modelController.dispose();
     _yearController.dispose();
     _priceController.dispose();
@@ -677,23 +681,22 @@ class _SellFormState extends State<SellForm> {
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Title
+            // Brand field
             TextFormField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Title*'),
+              controller: _brandController,
+              decoration: const InputDecoration(labelText: 'Brand*'),
               validator: (value) => value!.isEmpty ? 'Required' : null,
             ),
 
-            // Model
+            // Model field
             TextFormField(
               controller: _modelController,
               decoration: const InputDecoration(labelText: 'Model*'),
               validator: (value) => value!.isEmpty ? 'Required' : null,
             ),
 
-            // Year
+            // Year field
             TextFormField(
               controller: _yearController,
               decoration: const InputDecoration(labelText: 'Year*'),
@@ -701,61 +704,59 @@ class _SellFormState extends State<SellForm> {
               validator: (value) => value!.isEmpty ? 'Required' : null,
             ),
 
-            // Price
-            TextFormField(
-              controller: _priceController,
-              decoration: const InputDecoration(labelText: 'Price (₦)*'),
-              keyboardType: TextInputType.number,
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-
-            // Location
-            TextFormField(
-              controller: _locationController,
-              decoration: const InputDecoration(labelText: 'Location*'),
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-
-            // Condition Dropdown
+            // Condition dropdown
             DropdownButtonFormField<String>(
               value: _condition,
-              items: ['Used', 'New'].map((condition) {
-                return DropdownMenuItem(
-                  value: condition,
-                  child: Text(condition),
+              items: ['Used', 'New'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
                 );
               }).toList(),
-              onChanged: (value) => setState(() => _condition = value!),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _condition = value);
+                }
+              },
               decoration: const InputDecoration(labelText: 'Condition*'),
             ),
 
-            // Transmission Dropdown
+            // Transmission dropdown
             DropdownButtonFormField<String>(
               value: _transmission,
-              items: ['Automatic', 'Manual'].map((transmission) {
-                return DropdownMenuItem(
-                  value: transmission,
-                  child: Text(transmission),
+              items: ['Automatic', 'Manual'].map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
                 );
               }).toList(),
-              onChanged: (value) => setState(() => _transmission = value!),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _transmission = value);
+                }
+              },
               decoration: const InputDecoration(labelText: 'Transmission*'),
             ),
 
-            // Fuel Type Dropdown
+            // Fuel Type dropdown
             DropdownButtonFormField<String>(
               value: _fuelType,
-              items: ['Petrol', 'Diesel', 'Electric', 'Hybrid'].map((fuel) {
-                return DropdownMenuItem(
-                  value: fuel,
-                  child: Text(fuel),
+              items: ['Petrol', 'Diesel', 'Electric', 'Hybrid']
+                  .map((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
                 );
               }).toList(),
-              onChanged: (value) => setState(() => _fuelType = value!),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => _fuelType = value);
+                }
+              },
               decoration: const InputDecoration(labelText: 'Fuel Type*'),
             ),
 
-            // Mileage
+            // Mileage field
             TextFormField(
               controller: _mileageController,
               decoration: const InputDecoration(labelText: 'Mileage (km)*'),
@@ -763,14 +764,29 @@ class _SellFormState extends State<SellForm> {
               validator: (value) => value!.isEmpty ? 'Required' : null,
             ),
 
-            // Description
+            // Price field
+            TextFormField(
+              controller: _priceController,
+              decoration: const InputDecoration(labelText: 'Price (₦)*'),
+              keyboardType: TextInputType.number,
+              validator: (value) => value!.isEmpty ? 'Required' : null,
+            ),
+
+            // Location field
+            TextFormField(
+              controller: _locationController,
+              decoration: const InputDecoration(labelText: 'Location*'),
+              validator: (value) => value!.isEmpty ? 'Required' : null,
+            ),
+
+            // Description field
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(labelText: 'Description'),
               maxLines: 3,
             ),
 
-            // Image Upload
+            // Image upload section
             const SizedBox(height: 16),
             const Text('Images*', style: TextStyle(fontSize: 16)),
             const SizedBox(height: 8),
@@ -806,15 +822,12 @@ class _SellFormState extends State<SellForm> {
                     ],
                   ),
 
-            // Submit Button
+            // Submit button
             const SizedBox(height: 24),
             _isSubmitting
                 ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
                     onPressed: _submitListing,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
                     child: const Text('Submit Listing'),
                   ),
           ],
