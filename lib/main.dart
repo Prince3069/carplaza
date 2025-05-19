@@ -37,7 +37,10 @@
 import 'package:car_plaza/screens/admin_panel.dart';
 import 'package:car_plaza/screens/admin_setup_screen.dart';
 import 'package:car_plaza/screens/home_screen.dart';
+import 'package:car_plaza/screens/profile_screen.dart';
+import 'package:car_plaza/screens/sell_screen.dart';
 import 'package:car_plaza/services/auth_service.dart';
+import 'package:car_plaza/services/database_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -47,51 +50,40 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp();
 
-  final adminExists = await _checkAdminExists();
-  runApp(MyApp(needsAdminSetup: !adminExists));
-}
-
-Future<bool> _checkAdminExists() async {
-  try {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('isAdmin', isEqualTo: true)
-        .limit(1)
-        .get();
-    return snapshot.docs.isNotEmpty;
-  } catch (e) {
-    debugPrint('Error checking admin: $e');
-    return true; // Fallback to prevent setup loop
-  }
-}
-
-class MyApp extends StatelessWidget {
-  final bool needsAdminSetup;
-  const MyApp({super.key, required this.needsAdminSetup});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
+  runApp(
+    MultiProvider(
       providers: [
         Provider<AuthService>(create: (_) => AuthService()),
+        Provider<DatabaseService>(create: (_) => DatabaseService()),
         StreamProvider<User?>.value(
           value: FirebaseAuth.instance.authStateChanges(),
           initialData: null,
         ),
       ],
-      child: MaterialApp(
-        title: 'Car Plaza',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          visualDensity: VisualDensity.adaptivePlatformDensity,
-        ),
-        home: needsAdminSetup ? const AdminSetupScreen() : const AuthWrapper(),
+      child: const MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Car Plaza',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
       ),
+      home: const AuthWrapper(),
+      routes: {
+        '/home': (context) => const HomeScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/sell': (context) => const SellScreen(),
+      },
     );
   }
 }
@@ -104,7 +96,7 @@ class AuthWrapper extends StatelessWidget {
     final user = Provider.of<User?>(context);
 
     if (user == null) {
-      return const HomeScreen();
+      return const HomeScreen(); // Or your LoginScreen
     }
 
     return FutureBuilder<DocumentSnapshot>(
@@ -120,10 +112,7 @@ class AuthWrapper extends StatelessWidget {
           return const HomeScreen();
         }
 
-        final userData = snapshot.data!.data() as Map<String, dynamic>;
-        return userData['isAdmin'] == true
-            ? const AdminPanel()
-            : const HomeScreen();
+        return const HomeScreen(); // Or your main app screen
       },
     );
   }
