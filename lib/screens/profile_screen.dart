@@ -32,19 +32,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = auth.currentUser;
 
     if (user != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (mounted) {
-        setState(() {
-          _nameController.text = userDoc['name'] ?? '';
-          _emailController.text = userDoc['email'] ?? '';
-          _phoneController.text = userDoc['phone'] ?? '';
-          _isAdmin = userDoc['isAdmin'] ?? false;
-          _isVerifiedSeller = userDoc['isVerifiedSeller'] ?? false;
-        });
+      setState(() => _isLoading = true);
+      try {
+        final userData = await auth.getUserData(user.uid);
+        if (userData != null) {
+          setState(() {
+            _nameController.text = userData['name'] ?? '';
+            _emailController.text = userData['email'] ?? '';
+            _phoneController.text = userData['phone'] ?? '';
+            _isAdmin = userData['isAdmin'] ?? false;
+            _isVerifiedSeller = userData['isVerifiedSeller'] ?? false;
+          });
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading profile: ${e.toString()}')),
+        );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -59,18 +64,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final user = auth.currentUser;
 
       if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not logged in')),
-        );
-        return;
+        throw Exception('User not logged in');
       }
 
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'name': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      await auth.updateProfile(
+        userId: user.uid,
+        name: _nameController.text.trim(),
+        phone: _phoneController.text.trim(),
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Profile saved successfully!')),
@@ -84,6 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // ... rest of your build method and other code ...
   @override
   Widget build(BuildContext context) {
     return Scaffold(
