@@ -288,96 +288,55 @@
 //             .toList());
 //   }
 // }
-import 'dart:io';
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:car_plaza/models/car_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
+  // Add a new car listing
+  Future<void> addCar(Car car) async {
+    try {
+      await _firestore.collection('listings').add({
+        'userId': car.userId,
+        'title': car.title,
+        'model': car.model,
+        'year': car.year,
+        'condition': car.condition,
+        'transmission': car.transmission,
+        'fuelType': car.fuelType,
+        'mileage': car.mileage,
+        'price': car.price,
+        'location': car.location,
+        'images': car.images,
+        'description': car.description,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      print('Error adding car: $e');
+      rethrow;
+    }
+  }
+
+  // Get stream of all cars
   Stream<List<Car>> get cars {
     return _firestore
         .collection('listings')
-        .orderBy('postedDate', descending: true)
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) =>
-                Car.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .map((doc) => Car.fromFirestore(doc.data(), doc.id))
             .toList());
   }
 
-  Stream<List<Car>> searchCars({
-    String? query,
-    String? brand,
-    String? location,
-    double? minPrice,
-    double? maxPrice,
-    int? minYear,
-    int? maxYear,
-  }) {
-    Query collection = _firestore.collection('listings');
-
-    if (query != null && query.isNotEmpty) {
-      collection = collection.where(
-        'searchKeywords',
-        arrayContains: query.toLowerCase(),
-      );
+  // Delete a car listing
+  Future<void> deleteCar(String carId) async {
+    try {
+      await _firestore.collection('listings').doc(carId).delete();
+    } catch (e) {
+      print('Error deleting car: $e');
+      rethrow;
     }
-
-    if (brand != null && brand.isNotEmpty) {
-      collection = collection.where('brand', isEqualTo: brand);
-    }
-
-    if (location != null && location.isNotEmpty) {
-      collection = collection.where('location', isEqualTo: location);
-    }
-
-    if (minPrice != null) {
-      collection = collection.where('price', isGreaterThanOrEqualTo: minPrice);
-    }
-
-    if (maxPrice != null) {
-      collection = collection.where('price', isLessThanOrEqualTo: maxPrice);
-    }
-
-    if (minYear != null) {
-      collection = collection.where('year', isGreaterThanOrEqualTo: minYear);
-    }
-
-    if (maxYear != null) {
-      collection = collection.where('year', isLessThanOrEqualTo: maxYear);
-    }
-
-    return collection.snapshots().map((snapshot) => snapshot.docs
-        .map((doc) => Car.fromMap(doc.id, doc.data() as Map<String, dynamic>))
-        .toList());
-  }
-
-  Future<List<String>> uploadCarImages(
-      List<File> imageFiles, String userId) async {
-    List<String> downloadUrls = [];
-
-    for (int i = 0; i < imageFiles.length; i++) {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filename = '${userId}_$timestamp$i.jpg';
-      final ref = _storage.ref('car_images').child(filename);
-      await ref.putFile(imageFiles[i]);
-      final url = await ref.getDownloadURL();
-      downloadUrls.add(url);
-    }
-
-    return downloadUrls;
-  }
-
-  Future<void> addCar(Car car) async {
-    await _firestore.collection('listings').add(car.toMap());
-  }
-
-  Future<Map<String, dynamic>?> getUserData(String userId) async {
-    final doc = await _firestore.collection('users').doc(userId).get();
-    return doc.data();
   }
 }
