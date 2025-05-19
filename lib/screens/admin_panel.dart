@@ -8,40 +8,29 @@ class AdminPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: Provider.of<AuthService>(context, listen: false).isAdmin(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || !snapshot.data!) {
-          return const Scaffold(
-            body: Center(child: Text('Admin access required')),
-          );
-        }
-
-        return Scaffold(
-          appBar: AppBar(title: const Text('Admin Panel')),
-          body: DefaultTabController(
-            length: 2,
-            child: Column(
-              children: [
-                const TabBar(
-                  tabs: [
-                    Tab(text: 'Pending Sellers'),
-                    Tab(text: 'All Listings'),
-                  ],
-                ),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _buildPendingSellersList(context),
-                      _buildAllListingsList(),
-                    ],
-                  ),
-                ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Admin Panel')),
+      body: DefaultTabController(
+        length: 2,
+        child: Column(
+          children: [
+            const TabBar(
+              tabs: [
+                Tab(text: 'Pending Sellers'),
+                Tab(text: 'All Listings'),
               ],
             ),
-          ),
-        );
-      },
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildPendingSellersList(context),
+                  _buildAllListingsList(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -61,13 +50,11 @@ class AdminPanel extends StatelessWidget {
           itemBuilder: (context, index) {
             final user = snapshot.data!.docs[index];
             return ListTile(
-              title: Text(user['name'] ?? 'No name'),
-              subtitle: Text(user['email'] ?? 'No email'),
+              title: Text(user['name'] ?? 'No Name'),
+              subtitle: Text(user['email'] ?? 'No Email'),
               trailing: IconButton(
-                icon: const Icon(Icons.verified),
-                onPressed: () =>
-                    Provider.of<AuthService>(context, listen: false)
-                        .verifySeller(user.id),
+                icon: const Icon(Icons.verified, color: Colors.green),
+                onPressed: () => _verifySeller(context, user.id),
               ),
             );
           },
@@ -92,10 +79,10 @@ class AdminPanel extends StatelessWidget {
           itemBuilder: (context, index) {
             final listing = snapshot.data!.docs[index];
             return ListTile(
-              title: Text(listing['title'] ?? 'No title'),
+              title: Text(listing['title'] ?? 'No Title'),
               subtitle: Text('₦${listing['price']} - ${listing['location']}'),
               trailing: IconButton(
-                icon: const Icon(Icons.delete),
+                icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () => _deleteListing(listing.id),
               ),
             );
@@ -103,6 +90,20 @@ class AdminPanel extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _verifySeller(BuildContext context, String userId) async {
+    try {
+      await Provider.of<AuthService>(context, listen: false)
+          .verifySeller(userId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seller verified successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error verifying seller: $e')),
+      );
+    }
   }
 
   Future<void> _deleteListing(String listingId) async {
