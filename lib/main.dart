@@ -93,26 +93,23 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<User?>(context);
+    final auth = Provider.of<AuthService>(context);
+    final user = auth.currentUser;
 
     if (user == null) {
-      return const HomeScreen(); // Or your LoginScreen
+      return const ProfileScreen(); // Force profile completion
     }
 
-    return FutureBuilder<DocumentSnapshot>(
-      future:
-          FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+    return FutureBuilder<bool>(
+      future: auth.isAdmin(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (!snapshot.hasData) {
           return const Scaffold(
               body: Center(child: CircularProgressIndicator()));
         }
 
-        if (snapshot.hasError || !snapshot.hasData) {
-          return const HomeScreen();
-        }
-
-        return const HomeScreen(); // Or your main app screen
+        final isAdmin = snapshot.data!;
+        return isAdmin ? const AdminPanel() : const HomeScreen();
       },
     );
   }
