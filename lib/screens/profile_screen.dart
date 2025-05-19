@@ -282,6 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await auth.saveProfile(
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
+          userId: '',
         );
       }
 
@@ -347,10 +348,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               if (auth.currentUser != null) ...[
                 const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => auth.signOut(),
-                  child: const Text('Sign Out'),
-                ),
+                // TextButton(
+                //   onPressed: () => auth.signOut(),
+                //   child: const Text('Sign Out'),
+                // ),
               ],
             ],
           ),

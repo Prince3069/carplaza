@@ -471,7 +471,7 @@ class AuthService {
     return doc.data();
   }
 
-  Future<void> updateProfile({
+  Future<void> saveProfile({
     required String userId,
     required String name,
     required String phone,
