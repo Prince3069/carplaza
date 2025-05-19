@@ -226,9 +226,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _isAdmin = false;
-  bool _isVerifiedSeller = false;
 
   @override
   void initState() {
@@ -240,26 +239,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = Provider.of<AuthService>(context, listen: false);
     final user = auth.currentUser;
 
-    if (user != null) {
-      setState(() => _isLoading = true);
-      try {
-        final userData = await auth.getUserData(user.uid);
-        if (userData != null) {
-          setState(() {
-            _nameController.text = userData['name'] ?? '';
-            _emailController.text = userData['email'] ?? '';
-            _phoneController.text = userData['phone'] ?? '';
-            _isAdmin = userData['isAdmin'] ?? false;
-            _isVerifiedSeller = userData['isVerifiedSeller'] ?? false;
-          });
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading profile: $e')),
-        );
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
+    if (user == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (doc.exists) {
+        _nameController.text = doc['name'] ?? '';
+        _emailController.text = doc['email'] ?? '';
+        _phoneController.text = doc['phone'] ?? '';
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading profile: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -267,7 +266,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
 
@@ -284,23 +282,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await auth.saveProfile(
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
+          userId: auth.currentUser!.uid, // Use the actual user ID
         );
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved successfully!')),
+        const SnackBar(content: Text('Profile saved successfully')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(content: Text('Error saving profile: $e')),
       );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthService>(context);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: Padding(
@@ -347,23 +348,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               if (auth.currentUser != null) ...[
                 const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => auth.signOut(),
-                  child: const Text('Sign Out'),
-                ),
+                // TextButton(
+                //   onPressed: () => auth.signOut(),
+                //   child: const Text('Sign Out'),
+                // ),
               ],
             ],
           ),
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    super.dispose();
   }
 }

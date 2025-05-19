@@ -1,22 +1,27 @@
 class Car {
-  final String id;
-  final String userId;
+  final String? id;
+  final String title;
+  final String description;
+  final double price;
+  final String location;
   final String brand;
   final String model;
   final int year;
   final String condition;
   final String transmission;
   final String fuelType;
-  final int mileage;
-  final double price;
-  final String location;
+  final String mileage;
   final List<String> images;
-  final String description;
+  final String sellerId;
   final DateTime postedDate;
+  final bool isVerified;
 
   Car({
-    this.id = '',
-    required this.userId,
+    this.id,
+    required this.title,
+    required this.description,
+    required this.price,
+    required this.location,
     required this.brand,
     required this.model,
     required this.year,
@@ -24,35 +29,19 @@ class Car {
     required this.transmission,
     required this.fuelType,
     required this.mileage,
-    required this.price,
-    required this.location,
     required this.images,
-    required this.description,
+    required this.sellerId,
     required this.postedDate,
+    this.isVerified = false,
   });
 
-  factory Car.fromMap(Map<String, dynamic> data, String id) {
-    return Car(
-      id: id,
-      userId: data['userId'] ?? '',
-      brand: data['brand'] ?? '',
-      model: data['model'] ?? '',
-      year: data['year'] ?? 0,
-      condition: data['condition'] ?? 'Used',
-      transmission: data['transmission'] ?? 'Automatic',
-      fuelType: data['fuelType'] ?? 'Petrol',
-      mileage: data['mileage'] ?? 0,
-      price: data['price']?.toDouble() ?? 0.0,
-      location: data['location'] ?? '',
-      images: List<String>.from(data['images'] ?? []),
-      description: data['description'] ?? '',
-      postedDate: (data['postedDate'] as Timestamp).toDate(),
-    );
-  }
-
+  // Convert Car to Map
   Map<String, dynamic> toMap() {
     return {
-      'userId': userId,
+      'title': title,
+      'description': description,
+      'price': price,
+      'location': location,
       'brand': brand,
       'model': model,
       'year': year,
@@ -60,11 +49,41 @@ class Car {
       'transmission': transmission,
       'fuelType': fuelType,
       'mileage': mileage,
-      'price': price,
-      'location': location,
       'images': images,
-      'description': description,
-      'postedDate': Timestamp.fromDate(postedDate),
+      'sellerId': sellerId,
+      'postedDate': postedDate.toIso8601String(),
+      'isVerified': isVerified,
+      'searchKeywords': [
+        title.toLowerCase(),
+        brand.toLowerCase(),
+        model.toLowerCase(),
+        location.toLowerCase(),
+        condition.toLowerCase(),
+        transmission.toLowerCase(),
+        fuelType.toLowerCase(),
+      ],
     };
+  }
+
+  // Create Car from Map
+  factory Car.fromMap(String id, Map<String, dynamic> map) {
+    return Car(
+      id: id,
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      price: map['price']?.toDouble() ?? 0.0,
+      location: map['location'] ?? '',
+      brand: map['brand'] ?? '',
+      model: map['model'] ?? '',
+      year: map['year']?.toInt() ?? 0,
+      condition: map['condition'] ?? '',
+      transmission: map['transmission'] ?? '',
+      fuelType: map['fuelType'] ?? '',
+      mileage: map['mileage'] ?? '',
+      images: List<String>.from(map['images'] ?? []),
+      sellerId: map['sellerId'] ?? '',
+      postedDate: DateTime.parse(map['postedDate']),
+      isVerified: map['isVerified'] ?? false,
+    );
   }
 }

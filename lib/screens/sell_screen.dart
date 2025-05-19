@@ -517,320 +517,459 @@
 //   }
 // }
 import 'dart:io';
+import 'package:car_plaza/constants/app_colors.dart';
+import 'package:car_plaza/models/car_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:car_plaza/models/car_model.dart';
-import 'package:car_plaza/services/auth_service.dart';
+import 'package:provider/provider.dart';
 import 'package:car_plaza/services/database_service.dart';
 
-class SellScreen extends StatelessWidget {
+class SellScreen extends StatefulWidget {
   const SellScreen({super.key});
+
+  @override
+  State<SellScreen> createState() => _SellScreenState();
+}
+
+class _SellScreenState extends State<SellScreen> {
+  final _formKey = GlobalKey<FormState>();
+  List<File> _imageFiles = [];
+  final ImagePicker _picker = ImagePicker();
+  bool _isUploading = false;
+  String _uploadStatus = '';
+
+  // Form fields with explicit types
+  String _title = '';
+  String _description = '';
+  double _price = 0.0;
+  String _location = 'Lagos';
+  String _brand = 'Toyota';
+  String _model = '';
+  int _year = DateTime.now().year;
+  String _condition = 'Used';
+  String _transmission = 'Automatic';
+  String _fuelType = 'Petrol';
+  String _mileage = '';
+
+  final List<String> _locations = [
+    'Lagos',
+    'Abuja',
+    'Port Harcourt',
+    'Kano',
+    'Enugu'
+  ];
+  final List<String> _brands = [
+    'Toyota',
+    'Honda',
+    'Nissan',
+    'Mercedes',
+    'BMW',
+    'Lexus'
+  ];
+  final List<String> _conditions = ['New', 'Used', 'Foreign Used'];
+  final List<String> _transmissions = ['Automatic', 'Manual'];
+  final List<String> _fuelTypes = ['Petrol', 'Diesel', 'Hybrid', 'Electric'];
+
+  Future<void> _pickImages() async {
+    try {
+      final pickedFiles = await _picker.pickMultiImage();
+      if (pickedFiles != null) {
+        setState(() {
+          _imageFiles = pickedFiles.map((xfile) => File(xfile.path)).toList();
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking images: ${e.toString()}')),
+      );
+    }
+  }
+
+  Future<List<String>> _uploadImages(String userId) async {
+    List<String> imageUrls = [];
+    setState(() => _uploadStatus = 'Uploading images...');
+
+    try {
+      for (int i = 0; i < _imageFiles.length; i++) {
+        if (!mounted) return imageUrls;
+        setState(() =>
+            _uploadStatus = 'Uploading image ${i + 1}/${_imageFiles.length}');
+
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final filename = '${userId}_$timestamp$i.jpg';
+        final ref = FirebaseStorage.instance.ref('car_images').child(filename);
+        await ref.putFile(_imageFiles[i]);
+        final url = await ref.getDownloadURL();
+        imageUrls.add(url);
+      }
+      return imageUrls;
+    } catch (e) {
+      if (!mounted) return imageUrls;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Image upload failed: ${e.toString()}')),
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> _submitListing() async {
+    if (!_formKey.currentState!.validate()) return;
+    _formKey.currentState!.save();
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login first')),
+      );
+      return;
+    }
+
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists || (userDoc.data()?['isVerifiedSeller'] != true)) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please complete seller verification first'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _isUploading = true;
+        _uploadStatus = 'Starting submission...';
+      });
+
+      if (!mounted) return;
+      setState(() => _uploadStatus = 'Uploading car images...');
+      final imageUrls = await _uploadImages(user.uid);
+
+      final newCar = Car(
+        title: _title,
+        description: _description,
+        price: _price,
+        location: _location,
+        brand: _brand,
+        model: _model,
+        year: _year,
+        condition: _condition,
+        transmission: _transmission,
+        fuelType: _fuelType,
+        mileage: _mileage,
+        images: imageUrls,
+        sellerId: user.uid,
+        postedDate: DateTime.now(),
+        isVerified: true,
+      );
+
+      if (!mounted) return;
+      setState(() => _uploadStatus = 'Saving car details...');
+      await Provider.of<DatabaseService>(context, listen: false).addCar(newCar);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Car listed successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      _resetForm();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+          _uploadStatus = '';
+        });
+      }
+    }
+  }
+
+  void _resetForm() {
+    _formKey.currentState?.reset();
+    setState(() {
+      _imageFiles.clear();
+      _location = 'Lagos';
+      _brand = 'Toyota';
+      _year = DateTime.now().year;
+      _condition = 'Used';
+      _transmission = 'Automatic';
+      _fuelType = 'Petrol';
+    });
+  }
+
+  Widget _buildDropdown<T>({
+    required String label,
+    required T value,
+    required List<T> items,
+    required ValueChanged<T?> onChanged,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      items: items.map((item) {
+        return DropdownMenuItem<T>(
+          value: item,
+          child: Text(item.toString()),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+    );
+  }
+
+  Widget _buildImageUploadSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Car Images (Upload at least 1 image)',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        if (_imageFiles.isNotEmpty)
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _imageFiles.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          _imageFiles[index],
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () =>
+                              setState(() => _imageFiles.removeAt(index)),
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: _isUploading ? null : _pickImages,
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Add Image'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+              ),
+            ),
+            if (_imageFiles.isNotEmpty)
+              TextButton(
+                onPressed: _isUploading
+                    ? null
+                    : () => setState(() => _imageFiles.clear()),
+                child: const Text('Clear All'),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Sell Your Car')),
-      body: const SellForm(),
-    );
-  }
-}
-
-class SellForm extends StatefulWidget {
-  const SellForm({super.key});
-
-  @override
-  State<SellForm> createState() => _SellFormState();
-}
-
-class _SellFormState extends State<SellForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _picker = ImagePicker();
-  final List<File> _images = [];
-  bool _isSubmitting = false;
-
-  // Controllers
-  final _brandController = TextEditingController();
-  final _modelController = TextEditingController();
-  final _yearController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _locationController = TextEditingController();
-  final _mileageController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  String _condition = 'Used';
-  String _transmission = 'Automatic';
-  String _fuelType = 'Petrol';
-
-  Future<void> _pickImages() async {
-    try {
-      final pickedFiles = await _picker.pickMultiImage(
-        maxWidth: 1000,
-        maxHeight: 1000,
-        imageQuality: 85,
-      );
-
-      if (pickedFiles != null && pickedFiles.isNotEmpty) {
-        setState(() {
-          _images.addAll(pickedFiles.map((file) => File(file.path)));
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking images: $e')),
-        );
-      }
-    }
-  }
-
-  Future<List<String>> _uploadImages(String userId) async {
-    final List<String> imageUrls = [];
-    final storage = FirebaseStorage.instance;
-
-    for (final image in _images) {
-      try {
-        final ref = storage.ref().child(
-            'listings/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg');
-        await ref.putFile(image);
-        imageUrls.add(await ref.getDownloadURL());
-      } catch (e) {
-        throw Exception('Failed to upload image: $e');
-      }
-    }
-
-    return imageUrls;
-  }
-
-  Future<void> _submitListing() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_images.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please add at least one image')),
-        );
-      }
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final database = Provider.of<DatabaseService>(context, listen: false);
-      final user = auth.currentUser;
-
-      if (user == null) throw Exception('User not logged in');
-
-      final imageUrls = await _uploadImages(user.uid);
-
-      final car = Car(
-        userId: user.uid,
-        brand: _brandController.text.trim(),
-        model: _modelController.text.trim(),
-        year: int.parse(_yearController.text.trim()),
-        condition: _condition,
-        transmission: _transmission,
-        fuelType: _fuelType,
-        mileage: int.parse(_mileageController.text.trim()),
-        price: double.parse(_priceController.text.trim()),
-        location: _locationController.text.trim(),
-        images: imageUrls,
-        description: _descriptionController.text.trim(),
-        postedDate: DateTime.now(),
-      );
-
-      await database.addCar(car);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Car listed successfully!')),
-        );
-        _formKey.currentState!.reset();
-        setState(() => _images.clear());
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to list car: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _brandController.dispose();
-    _modelController.dispose();
-    _yearController.dispose();
-    _priceController.dispose();
-    _locationController.dispose();
-    _mileageController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            // Brand field
-            TextFormField(
-              controller: _brandController,
-              decoration: const InputDecoration(labelText: 'Brand*'),
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-
-            // Model field
-            TextFormField(
-              controller: _modelController,
-              decoration: const InputDecoration(labelText: 'Model*'),
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-
-            // Year field
-            TextFormField(
-              controller: _yearController,
-              decoration: const InputDecoration(labelText: 'Year*'),
-              keyboardType: TextInputType.number,
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-
-            // Condition dropdown
-            DropdownButtonFormField<String>(
-              value: _condition,
-              items: ['Used', 'New'].map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _condition = value);
-                }
-              },
-              decoration: const InputDecoration(labelText: 'Condition*'),
-            ),
-
-            // Transmission dropdown
-            DropdownButtonFormField<String>(
-              value: _transmission,
-              items: ['Automatic', 'Manual'].map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _transmission = value);
-                }
-              },
-              decoration: const InputDecoration(labelText: 'Transmission*'),
-            ),
-
-            // Fuel Type dropdown
-            DropdownButtonFormField<String>(
-              value: _fuelType,
-              items: ['Petrol', 'Diesel', 'Electric', 'Hybrid']
-                  .map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _fuelType = value);
-                }
-              },
-              decoration: const InputDecoration(labelText: 'Fuel Type*'),
-            ),
-
-            // Mileage field
-            TextFormField(
-              controller: _mileageController,
-              decoration: const InputDecoration(labelText: 'Mileage (km)*'),
-              keyboardType: TextInputType.number,
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-
-            // Price field
-            TextFormField(
-              controller: _priceController,
-              decoration: const InputDecoration(labelText: 'Price (₦)*'),
-              keyboardType: TextInputType.number,
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-
-            // Location field
-            TextFormField(
-              controller: _locationController,
-              decoration: const InputDecoration(labelText: 'Location*'),
-              validator: (value) => value!.isEmpty ? 'Required' : null,
-            ),
-
-            // Description field
-            TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(labelText: 'Description'),
-              maxLines: 3,
-            ),
-
-            // Image upload section
-            const SizedBox(height: 16),
-            const Text('Images*', style: TextStyle(fontSize: 16)),
-            const SizedBox(height: 8),
-            _images.isEmpty
-                ? ElevatedButton(
-                    onPressed: _pickImages,
-                    child: const Text('Add Photos'),
-                  )
-                : Column(
-                    children: [
-                      SizedBox(
-                        height: 120,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _images.length,
-                          itemBuilder: (context, index) {
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Image.file(
-                                _images[index],
-                                width: 120,
-                                height: 120,
-                                fit: BoxFit.cover,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _pickImages,
-                        child: const Text('Add More Photos'),
-                      ),
-                    ],
-                  ),
-
-            // Submit button
-            const SizedBox(height: 24),
-            _isSubmitting
-                ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-                    onPressed: _submitListing,
-                    child: const Text('Submit Listing'),
-                  ),
-          ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildImageUploadSection(),
+              const SizedBox(height: 20),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Title*',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Required' : null,
+                onSaved: (value) => _title = value ?? '',
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Description*',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Required' : null,
+                onSaved: (value) => _description = value ?? '',
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Price (₦)*',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Required';
+                  if (double.tryParse(value) == null) return 'Invalid number';
+                  return null;
+                },
+                onSaved: (value) =>
+                    _price = double.tryParse(value ?? '0') ?? 0.0,
+              ),
+              const SizedBox(height: 12),
+              _buildDropdown<String>(
+                label: 'Location*',
+                value: _location,
+                items: _locations,
+                onChanged: (value) =>
+                    setState(() => _location = value ?? 'Lagos'),
+              ),
+              const SizedBox(height: 12),
+              _buildDropdown<String>(
+                label: 'Brand*',
+                value: _brand,
+                items: _brands,
+                onChanged: (value) =>
+                    setState(() => _brand = value ?? 'Toyota'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Model*',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Required' : null,
+                onSaved: (value) => _model = value ?? '',
+              ),
+              const SizedBox(height: 12),
+              _buildDropdown<int>(
+                label: 'Year*',
+                value: _year,
+                items:
+                    List.generate(30, (index) => DateTime.now().year - index),
+                onChanged: (value) =>
+                    setState(() => _year = value ?? DateTime.now().year),
+              ),
+              const SizedBox(height: 12),
+              _buildDropdown<String>(
+                label: 'Condition*',
+                value: _condition,
+                items: _conditions,
+                onChanged: (value) =>
+                    setState(() => _condition = value ?? 'Used'),
+              ),
+              const SizedBox(height: 12),
+              _buildDropdown<String>(
+                label: 'Transmission*',
+                value: _transmission,
+                items: _transmissions,
+                onChanged: (value) =>
+                    setState(() => _transmission = value ?? 'Automatic'),
+              ),
+              const SizedBox(height: 12),
+              _buildDropdown<String>(
+                label: 'Fuel Type*',
+                value: _fuelType,
+                items: _fuelTypes,
+                onChanged: (value) =>
+                    setState(() => _fuelType = value ?? 'Petrol'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Mileage (km)*',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Required' : null,
+                onSaved: (value) => _mileage = value ?? '',
+              ),
+              const SizedBox(height: 20),
+              if (_isUploading) ...[
+                const LinearProgressIndicator(
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _uploadStatus,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(height: 12),
+              ],
+              ElevatedButton(
+                onPressed: _isUploading ? null : _submitListing,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: _isUploading
+                    ? const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: Colors.white),
+                          SizedBox(width: 10),
+                          Text('Submitting...',
+                              style: TextStyle(color: Colors.white)),
+                        ],
+                      )
+                    : const Text('Submit Car Listing',
+                        style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
         ),
       ),
     );
