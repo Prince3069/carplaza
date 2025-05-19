@@ -1,8 +1,7 @@
-import 'package:car_plaza/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:car_plaza/services/auth_service.dart';
 
 class AdminPanel extends StatelessWidget {
   const AdminPanel({super.key});
@@ -33,7 +32,7 @@ class AdminPanel extends StatelessWidget {
                 Expanded(
                   child: TabBarView(
                     children: [
-                      _buildPendingSellersList(),
+                      _buildPendingSellersList(context),
                       _buildAllListingsList(),
                     ],
                   ),
@@ -45,77 +44,71 @@ class AdminPanel extends StatelessWidget {
       },
     );
   }
-  // ... rest of your admin panel code
-}
 
-Widget _buildPendingSellersList() {
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('users')
-        .where('isVerifiedSeller', isEqualTo: false)
-        .snapshots(),
-    builder: (context, snapshot) {
-      if (!snapshot.hasData) {
-        return const Center(child: CircularProgressIndicator());
-      }
+  Widget _buildPendingSellersList(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .where('isVerifiedSeller', isEqualTo: false)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-      return ListView.builder(
-        itemCount: snapshot.data!.docs.length,
-        itemBuilder: (context, index) {
-          final user = snapshot.data!.docs[index];
-          return ListTile(
-            title: Text(user['name']),
-            subtitle: Text(user['email']),
-            trailing: IconButton(
-              icon: const Icon(Icons.verified),
-              onPressed: () => _verifySeller(user.id),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
+        return ListView.builder(
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final user = snapshot.data!.docs[index];
+            return ListTile(
+              title: Text(user['name'] ?? 'No name'),
+              subtitle: Text(user['email'] ?? 'No email'),
+              trailing: IconButton(
+                icon: const Icon(Icons.verified),
+                onPressed: () =>
+                    Provider.of<AuthService>(context, listen: false)
+                        .verifySeller(user.id),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
-Widget _buildAllListingsList() {
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
+  Widget _buildAllListingsList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('listings')
+          .orderBy('postedDate', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        return ListView.builder(
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final listing = snapshot.data!.docs[index];
+            return ListTile(
+              title: Text(listing['title'] ?? 'No title'),
+              subtitle: Text('₦${listing['price']} - ${listing['location']}'),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () => _deleteListing(listing.id),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteListing(String listingId) async {
+    await FirebaseFirestore.instance
         .collection('listings')
-        .orderBy('postedDate', descending: true)
-        .snapshots(),
-    builder: (context, snapshot) {
-      if (!snapshot.hasData) {
-        return const Center(child: CircularProgressIndicator());
-      }
-
-      return ListView.builder(
-        itemCount: snapshot.data!.docs.length,
-        itemBuilder: (context, index) {
-          final listing = snapshot.data!.docs[index];
-          return ListTile(
-            title: Text(listing['title']),
-            subtitle: Text('₦${listing['price']} - ${listing['location']}'),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () => _deleteListing(listing.id),
-            ),
-          );
-        },
-      );
-    },
-  );
-}
-
-Future<void> _verifySeller(String userId) async {
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .update({'isVerifiedSeller': true});
-}
-
-Future<void> _deleteListing(String listingId) async {
-  await FirebaseFirestore.instance
-      .collection('listings')
-      .doc(listingId)
-      .delete();
+        .doc(listingId)
+        .delete();
+  }
 }
