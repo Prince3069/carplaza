@@ -486,4 +486,24 @@ class AuthService {
     final doc = await _firestore.collection('users').doc(userId).get();
     return doc.data();
   }
+
+  Future<void> updateProfile({
+    required String userId,
+    required String name,
+    required String phone,
+  }) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'name': name,
+        'phone': phone,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw FirebaseException(
+        plugin: 'updateProfile',
+        code: e.code,
+        message: 'Failed to update profile: ${e.message}',
+      );
+    }
+  }
 }
