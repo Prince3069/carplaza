@@ -8,8 +8,8 @@ class AdminSetupScreen extends StatelessWidget {
   Future<void> _setupAdmin() async {
     try {
       // Replace with your admin credentials
-      const email = 'admin@example.com';
-      const password = 'securepassword123';
+      const email = 'Princenwanozie6666@gmail.com';
+      const password = 'Prince6666';
 
       // Create auth user
       final credential = await FirebaseAuth.instance
