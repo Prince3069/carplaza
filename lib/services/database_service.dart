@@ -274,6 +274,8 @@
 //       collection = collection.where('year', isLessThanOrEqualTo: maxYear);
 //     }
 
+// ignore_for_file: unnecessary_cast
+
 //     return collection
 //         .orderBy('postedDate', descending: true)
 //         .snapshots()
@@ -288,7 +290,6 @@
 //             .toList());
 //   }
 // }
-import 'dart:io';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';

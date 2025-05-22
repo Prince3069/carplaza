@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -152,8 +154,9 @@ class PendingSellersTab extends StatelessWidget {
           .where('isVerifiedSeller', isEqualTo: false)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
 
         return ListView.builder(
           itemCount: snapshot.data!.docs.length,
@@ -199,8 +202,9 @@ class AllListingsTab extends StatelessWidget {
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData)
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
 
         return ListView.builder(
           itemCount: snapshot.data!.docs.length,
