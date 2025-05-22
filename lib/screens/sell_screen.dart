@@ -1,411 +1,6 @@
-// import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-// import 'package:car_plaza/services/auth_service.dart';
-// import 'package:car_plaza/services/database_service.dart';
-// import 'package:car_plaza/models/car_model.dart';
-// import 'package:image_picker/image_picker.dart';
-// import 'dart:io';
-
-// class SellScreen extends StatefulWidget {
-//   const SellScreen({super.key});
-
-//   @override
-//   State<SellScreen> createState() => _SellScreenState();
-// }
-
-// class _SellScreenState extends State<SellScreen> {
-//   final _formKey = GlobalKey<FormState>();
-//   List<File> _imageFiles = [];
-//   final ImagePicker _picker = ImagePicker();
-//   bool _isUploading = false;
-//   String _uploadStatus = '';
-
-//   // Form fields
-//   String _title = '';
-//   String _description = '';
-//   double _price = 0.0;
-//   String _location = 'Lagos';
-//   String _brand = 'Toyota';
-//   String _model = '';
-//   int _year = DateTime.now().year;
-//   String _condition = 'Used';
-//   String _transmission = 'Automatic';
-//   String _fuelType = 'Petrol';
-//   String _mileage = '';
-
-//   final List<String> _locations = ['Lagos', 'Abuja', 'Port Harcourt', 'Kano'];
-//   final List<String> _brands = ['Toyota', 'Honda', 'Nissan', 'Mercedes', 'BMW'];
-//   final List<String> _conditions = ['New', 'Used', 'Foreign Used'];
-//   final List<String> _transmissions = ['Automatic', 'Manual'];
-//   final List<String> _fuelTypes = ['Petrol', 'Diesel', 'Hybrid'];
-
-//   Future<void> _pickImages() async {
-//     try {
-//       final pickedFiles = await _picker.pickMultiImage();
-//       if (pickedFiles != null) {
-//         setState(() {
-//           _imageFiles = pickedFiles.map((xfile) => File(xfile.path)).toList();
-//         });
-//       }
-//     } catch (e) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(content: Text('Error picking images: $e')),
-//       );
-//     }
-//   }
-
-//   Future<void> _submitListing() async {
-//     if (!_formKey.currentState!.validate()) return;
-//     _formKey.currentState!.save();
-
-//     final auth = Provider.of<AuthService>(context, listen: false);
-//     final user = auth.currentUser;
-
-//     if (user == null) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(content: Text('Please login first')),
-//       );
-//       return;
-//     }
-
-//     // Check if user is verified
-//     final isVerified = await auth.isVerifiedSeller(user.uid);
-//     if (!isVerified) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text('Please complete seller verification first'),
-//           duration: Duration(seconds: 3),
-//         ),
-//       );
-//       return;
-//     }
-
-//     setState(() {
-//       _isUploading = true;
-//       _uploadStatus = 'Starting submission...';
-//     });
-
-//     try {
-//       // Upload images
-//       final database = Provider.of<DatabaseService>(context, listen: false);
-//       final imageUrls = await database.uploadCarImages(_imageFiles, user.uid);
-
-//       // Create car listing
-//       final newCar = Car(
-//         title: _title,
-//         description: _description,
-//         price: _price,
-//         location: _location,
-//         brand: _brand,
-//         model: _model,
-//         year: _year,
-//         condition: _condition,
-//         transmission: _transmission,
-//         fuelType: _fuelType,
-//         mileage: _mileage,
-//         images: imageUrls,
-//         sellerId: user.uid,
-//         postedDate: DateTime.now(),
-//         isVerified: true, // Admin will verify listings separately
-//       );
-
-//       // Save car to database
-//       await database.addCar(newCar);
-
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         const SnackBar(
-//           content: Text('Car listed successfully!'),
-//           backgroundColor: Colors.green,
-//         ),
-//       );
-
-//       _resetForm();
-//     } catch (e) {
-//       ScaffoldMessenger.of(context).showSnackBar(
-//         SnackBar(
-//           content: Text('Error: $e'),
-//           backgroundColor: Colors.red,
-//         ),
-//       );
-//     } finally {
-//       if (mounted) {
-//         setState(() {
-//           _isUploading = false;
-//           _uploadStatus = '';
-//         });
-//       }
-//     }
-//   }
-
-//   void _resetForm() {
-//     _formKey.currentState?.reset();
-//     setState(() {
-//       _imageFiles = [];
-//       _location = 'Lagos';
-//       _brand = 'Toyota';
-//       _year = DateTime.now().year;
-//       _condition = 'Used';
-//       _transmission = 'Automatic';
-//       _fuelType = 'Petrol';
-//     });
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: const Text('Sell Your Car')),
-//       body: SingleChildScrollView(
-//         padding: const EdgeInsets.all(16),
-//         child: Form(
-//           key: _formKey,
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.stretch,
-//             children: [
-//               _buildImageUploadSection(),
-//               const SizedBox(height: 20),
-//               TextFormField(
-//                 decoration: const InputDecoration(
-//                   labelText: 'Title*',
-//                   border: OutlineInputBorder(),
-//                 ),
-//                 validator: (value) =>
-//                     value?.isEmpty ?? true ? 'Required' : null,
-//                 onSaved: (value) => _title = value ?? '',
-//               ),
-//               const SizedBox(height: 12),
-//               TextFormField(
-//                 decoration: const InputDecoration(
-//                   labelText: 'Description*',
-//                   border: OutlineInputBorder(),
-//                 ),
-//                 maxLines: 3,
-//                 validator: (value) =>
-//                     value?.isEmpty ?? true ? 'Required' : null,
-//                 onSaved: (value) => _description = value ?? '',
-//               ),
-//               const SizedBox(height: 12),
-//               TextFormField(
-//                 decoration: const InputDecoration(
-//                   labelText: 'Price (₦)*',
-//                   border: OutlineInputBorder(),
-//                 ),
-//                 keyboardType: TextInputType.number,
-//                 validator: (value) {
-//                   if (value?.isEmpty ?? true) return 'Required';
-//                   if (double.tryParse(value!) == null) return 'Invalid number';
-//                   return null;
-//                 },
-//                 onSaved: (value) =>
-//                     _price = double.tryParse(value ?? '0') ?? 0.0,
-//               ),
-//               const SizedBox(height: 12),
-//               _buildDropdownFormField<String>(
-//                 value: _location,
-//                 items: _locations,
-//                 onChanged: (value) =>
-//                     setState(() => _location = value ?? 'Lagos'),
-//                 labelText: 'Location*',
-//               ),
-//               const SizedBox(height: 12),
-//               _buildDropdownFormField<String>(
-//                 value: _brand,
-//                 items: _brands,
-//                 onChanged: (value) =>
-//                     setState(() => _brand = value ?? 'Toyota'),
-//                 labelText: 'Brand*',
-//               ),
-//               const SizedBox(height: 12),
-//               TextFormField(
-//                 decoration: const InputDecoration(
-//                   labelText: 'Model*',
-//                   border: OutlineInputBorder(),
-//                 ),
-//                 validator: (value) =>
-//                     value?.isEmpty ?? true ? 'Required' : null,
-//                 onSaved: (value) => _model = value ?? '',
-//               ),
-//               const SizedBox(height: 12),
-//               _buildDropdownFormField<int>(
-//                 value: _year,
-//                 items:
-//                     List.generate(30, (index) => DateTime.now().year - index),
-//                 onChanged: (value) =>
-//                     setState(() => _year = value ?? DateTime.now().year),
-//                 labelText: 'Year*',
-//               ),
-//               const SizedBox(height: 12),
-//               _buildDropdownFormField<String>(
-//                 value: _condition,
-//                 items: _conditions,
-//                 onChanged: (value) =>
-//                     setState(() => _condition = value ?? 'Used'),
-//                 labelText: 'Condition*',
-//               ),
-//               const SizedBox(height: 12),
-//               _buildDropdownFormField<String>(
-//                 value: _transmission,
-//                 items: _transmissions,
-//                 onChanged: (value) =>
-//                     setState(() => _transmission = value ?? 'Automatic'),
-//                 labelText: 'Transmission*',
-//               ),
-//               const SizedBox(height: 12),
-//               _buildDropdownFormField<String>(
-//                 value: _fuelType,
-//                 items: _fuelTypes,
-//                 onChanged: (value) =>
-//                     setState(() => _fuelType = value ?? 'Petrol'),
-//                 labelText: 'Fuel Type*',
-//               ),
-//               const SizedBox(height: 12),
-//               TextFormField(
-//                 decoration: const InputDecoration(
-//                   labelText: 'Mileage (km)*',
-//                   border: OutlineInputBorder(),
-//                 ),
-//                 validator: (value) =>
-//                     value?.isEmpty ?? true ? 'Required' : null,
-//                 onSaved: (value) => _mileage = value ?? '',
-//               ),
-//               const SizedBox(height: 20),
-//               if (_isUploading) ...[
-//                 LinearProgressIndicator(
-//                   valueColor: AlwaysStoppedAnimation<Color>(
-//                       Theme.of(context).primaryColor),
-//                 ),
-//                 const SizedBox(height: 8),
-//                 Text(
-//                   _uploadStatus,
-//                   textAlign: TextAlign.center,
-//                   style: const TextStyle(fontStyle: FontStyle.italic),
-//                 ),
-//                 const SizedBox(height: 12),
-//               ],
-//               ElevatedButton(
-//                 onPressed: _isUploading ? null : _submitListing,
-//                 style: ElevatedButton.styleFrom(
-//                   padding: const EdgeInsets.symmetric(vertical: 16),
-//                 ),
-//                 child: _isUploading
-//                     ? const Row(
-//                         mainAxisAlignment: MainAxisAlignment.center,
-//                         children: [
-//                           CircularProgressIndicator(color: Colors.white),
-//                           SizedBox(width: 10),
-//                           Text('Submitting...',
-//                               style: TextStyle(color: Colors.white)),
-//                         ],
-//                       )
-//                     : const Text('Submit Car Listing',
-//                         style: TextStyle(color: Colors.white)),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildDropdownFormField<T>({
-//     required T value,
-//     required List<T> items,
-//     required ValueChanged<T?> onChanged,
-//     required String labelText,
-//   }) {
-//     return DropdownButtonFormField<T>(
-//       value: value,
-//       items: items.map((item) {
-//         return DropdownMenuItem<T>(
-//           value: item,
-//           child: Text(item.toString()),
-//         );
-//       }).toList(),
-//       onChanged: onChanged,
-//       decoration: InputDecoration(
-//         labelText: labelText,
-//         border: const OutlineInputBorder(),
-//       ),
-//     );
-//   }
-
-//   Widget _buildImageUploadSection() {
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       children: [
-//         const Text(
-//           'Car Images (Upload at least 1 image)',
-//           style: TextStyle(fontWeight: FontWeight.bold),
-//         ),
-//         const SizedBox(height: 8),
-//         if (_imageFiles.isNotEmpty)
-//           SizedBox(
-//             height: 120,
-//             child: ListView.builder(
-//               scrollDirection: Axis.horizontal,
-//               itemCount: _imageFiles.length,
-//               itemBuilder: (context, index) {
-//                 return Padding(
-//                   padding: const EdgeInsets.only(right: 8.0),
-//                   child: Stack(
-//                     children: [
-//                       ClipRRect(
-//                         borderRadius: BorderRadius.circular(8),
-//                         child: Image.file(
-//                           _imageFiles[index],
-//                           width: 120,
-//                           height: 120,
-//                           fit: BoxFit.cover,
-//                         ),
-//                       ),
-//                       Positioned(
-//                         top: 0,
-//                         right: 0,
-//                         child: GestureDetector(
-//                           onTap: () =>
-//                               setState(() => _imageFiles.removeAt(index)),
-//                           child: Container(
-//                             padding: const EdgeInsets.all(2),
-//                             decoration: BoxDecoration(
-//                               color: Colors.red,
-//                               borderRadius: BorderRadius.circular(10),
-//                             ),
-//                             child: const Icon(
-//                               Icons.close,
-//                               color: Colors.white,
-//                               size: 16,
-//                             ),
-//                           ),
-//                         ),
-//                       ),
-//                     ],
-//                   ),
-//                 );
-//               },
-//             ),
-//           ),
-//         const SizedBox(height: 8),
-//         Row(
-//           children: [
-//             ElevatedButton.icon(
-//               onPressed: _isUploading ? null : _pickImages,
-//               icon: const Icon(Icons.camera_alt),
-//               label: const Text('Add Image'),
-//             ),
-//             if (_imageFiles.isNotEmpty)
-//               TextButton(
-//                 onPressed: _isUploading
-//                     ? null
-//                     : () => setState(() => _imageFiles.clear()),
-//                 child: const Text('Clear All'),
-//               ),
-//           ],
-//         ),
-//       ],
-//     );
-//   }
-// }
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -413,6 +8,7 @@ import 'package:car_plaza/services/auth_service.dart';
 import 'package:car_plaza/services/database_service.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
 
 class SellScreen extends StatefulWidget {
   const SellScreen({super.key});
@@ -430,6 +26,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
   String _debugInfo = '';
   double _uploadProgress = 0.0;
   Timer? _progressTimer;
+  bool _uploadCancelled = false;
 
   // Form fields
   String _title = '';
@@ -454,7 +51,6 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Initialize with proper error handling
     _initializeScreen();
   }
 
@@ -467,7 +63,6 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
 
   void _initializeScreen() {
     try {
-      // Clear any previous state
       setState(() {
         _debugInfo = 'Screen initialized successfully\n';
       });
@@ -480,27 +75,18 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused && _isUploading) {
-      // Handle app going to background during upload
-      _logError('App paused during upload');
+      _logError('App paused during upload - marking for cancellation');
+      _uploadCancelled = true;
     }
   }
 
   Future<void> _pickImages() async {
     try {
-      // Check permissions first
-      final hasPermission = await _checkPermissions();
-      if (!hasPermission) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Camera/Storage permissions required')),
-        );
-        return;
-      }
-
       final pickedFiles = await _picker
           .pickMultiImage(
-            maxWidth: 1200,
-            maxHeight: 1200,
-            imageQuality: 80,
+            maxWidth: 1024, // Reduced from 1200 for faster upload
+            maxHeight: 1024,
+            imageQuality: 70, // Reduced from 80 for smaller file size
           )
           .timeout(
             const Duration(seconds: 30),
@@ -514,19 +100,24 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
         for (var pickedFile in pickedFiles) {
           try {
             final file = File(pickedFile.path);
-            final size = await file.length();
 
-            // Check file size (max 10MB per image)
-            if (size > 10 * 1024 * 1024) {
+            // Compress image before adding to list
+            final compressedFile = await _compressImage(file);
+            if (compressedFile != null) {
+              final size = await compressedFile.length();
+
+              // Check file size (max 5MB per image after compression)
+              if (size > 5 * 1024 * 1024) {
+                _logError(
+                    'Image still too large after compression: ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
+                continue;
+              }
+
+              files.add(compressedFile);
+              validImages++;
               _logError(
-                  'Image too large: ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
-              continue;
+                  'Valid image added: ${(size / 1024).toStringAsFixed(1)}KB');
             }
-
-            files.add(file);
-            validImages++;
-            _logError(
-                'Valid image added: ${(size / 1024).toStringAsFixed(1)}KB');
           } catch (e) {
             _logError('Error processing image: $e');
           }
@@ -538,33 +129,60 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
           });
           _logError('$validImages images selected successfully');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No valid images selected')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('No valid images could be processed')),
+            );
+          }
         }
       }
     } on TimeoutException {
       _logError('Image picker timed out');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Image selection timed out. Please try again.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Image selection timed out. Please try again.')),
+        );
+      }
     } catch (e) {
       _logError('Image picker error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error selecting images: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error selecting images: $e')),
+        );
+      }
     }
   }
 
-  Future<bool> _checkPermissions() async {
+  Future<File?> _compressImage(File imageFile) async {
     try {
-      // This would normally use permission_handler package
-      // For now, assume permissions are granted
-      return true;
+      final bytes = await imageFile.readAsBytes();
+      final image = img.decodeImage(bytes);
+
+      if (image == null) return null;
+
+      // Resize if too large
+      img.Image resized = image;
+      if (image.width > 1024 || image.height > 1024) {
+        resized = img.copyResize(
+          image,
+          width: image.width > image.height ? 1024 : null,
+          height: image.height > image.width ? 1024 : null,
+        );
+      }
+
+      // Compress to JPEG with quality 70
+      final compressedBytes = img.encodeJpg(resized, quality: 70);
+
+      // Create a new file with compressed data
+      final compressedFile = File('${imageFile.path}_compressed.jpg');
+      await compressedFile.writeAsBytes(compressedBytes);
+
+      return compressedFile;
     } catch (e) {
-      _logError('Permission check error: $e');
-      return false;
+      _logError('Image compression error: $e');
+      return imageFile; // Return original if compression fails
     }
   }
 
@@ -576,7 +194,6 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {
         _debugInfo += '$logMessage\n';
-        // Keep only last 50 lines to prevent memory issues
         final lines = _debugInfo.split('\n');
         if (lines.length > 50) {
           _debugInfo = lines.skip(lines.length - 50).join('\n');
@@ -599,6 +216,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
     }
 
     _formKey.currentState!.save();
+    _uploadCancelled = false;
 
     final auth = Provider.of<AuthService>(context, listen: false);
     final user = auth.currentUser;
@@ -613,10 +231,10 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
 
     _logError('User UID: ${user.uid}');
 
-    // Check verification with timeout
+    // Check verification with shorter timeout
     try {
       final isVerified = await auth.isVerifiedSeller(user.uid).timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 5),
             onTimeout: () =>
                 throw TimeoutException('Verification check timeout'),
           );
@@ -647,14 +265,12 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
       _uploadProgress = 0.0;
     });
 
-    // Start progress simulation
     _startProgressTimer();
 
     try {
       _logError('Starting image upload process...');
       _logError('Total images to upload: ${_imageFiles.length}');
 
-      // Log file information
       for (int i = 0; i < _imageFiles.length; i++) {
         final size = await _imageFiles[i].length();
         _logError(
@@ -668,9 +284,14 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
         _uploadProgress = 0.1;
       });
 
-      // Upload with chunked approach and better error handling
+      // Upload with improved chunked approach
       final imageUrls =
-          await _uploadImagesChunked(database, _imageFiles, user.uid);
+          await _uploadImagesWithRetry(database, _imageFiles, user.uid);
+
+      if (_uploadCancelled) {
+        _logError('Upload was cancelled');
+        return;
+      }
 
       setState(() {
         _uploadProgress = 0.8;
@@ -698,7 +319,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
       _logError('Car object created, saving to database...');
 
       await database.addCar(newCar).timeout(
-            const Duration(seconds: 30),
+            const Duration(seconds: 15), // Reduced timeout for database save
             onTimeout: () => throw TimeoutException('Database save timeout'),
           );
 
@@ -718,22 +339,26 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
           ),
         );
 
-        // Reset form after success
         await Future.delayed(const Duration(seconds: 1));
         _resetForm();
       }
     } catch (e, stack) {
-      _logError('ERROR: $e');
+      _logError('ERROR: Exception: $e');
       _logError('STACK TRACE: $stack');
 
-      if (mounted) {
+      if (mounted && !_uploadCancelled) {
         String errorMessage = 'Upload failed';
         if (e is TimeoutException) {
-          errorMessage = 'Upload timed out. Please check your connection.';
-        } else if (e.toString().contains('network')) {
-          errorMessage = 'Network error. Please check your connection.';
+          errorMessage =
+              'Upload timed out. Please check your internet connection and try again.';
+        } else if (e.toString().toLowerCase().contains('network') ||
+            e.toString().toLowerCase().contains('connection')) {
+          errorMessage =
+              'Network error. Please check your internet connection.';
+        } else if (e.toString().toLowerCase().contains('permission')) {
+          errorMessage = 'Permission error. Please check app permissions.';
         } else {
-          errorMessage = 'Error: ${e.toString()}';
+          errorMessage = 'Upload failed: ${e.toString()}';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -741,6 +366,11 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
             content: Text(errorMessage),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () => _submitListing(),
+            ),
           ),
         );
       }
@@ -750,6 +380,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
         setState(() {
           _isUploading = false;
           _uploadProgress = 0.0;
+          _uploadStatus = '';
         });
       }
     }
@@ -757,19 +388,25 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
 
   void _startProgressTimer() {
     _progressTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (_uploadProgress < 0.7 && _isUploading) {
+      if (_uploadProgress < 0.7 && _isUploading && !_uploadCancelled) {
         setState(() {
-          _uploadProgress += 0.02;
+          _uploadProgress += 0.01;
         });
       }
     });
   }
 
-  Future<List<String>> _uploadImagesChunked(
+  Future<List<String>> _uploadImagesWithRetry(
       DatabaseService database, List<File> images, String userId) async {
     final imageUrls = <String>[];
+    const maxRetries = 3;
+    const baseTimeout = Duration(seconds: 30); // Reduced from 60 seconds
 
     for (int i = 0; i < images.length; i++) {
+      if (_uploadCancelled) {
+        throw Exception('Upload cancelled by user');
+      }
+
       try {
         setState(() {
           _uploadStatus = 'Uploading image ${i + 1}/${images.length}...';
@@ -778,33 +415,66 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
 
         _logError('Uploading image ${i + 1}...');
 
-        // Upload with retries
         String? imageUrl;
-        for (int attempt = 1; attempt <= 3; attempt++) {
+        Exception? lastException;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+          if (_uploadCancelled) break;
+
           try {
-            imageUrl = await database
-                .uploadCarImages([images[i]], userId)
-                .timeout(const Duration(seconds: 60))
-                .then((urls) => urls.first);
-            break;
+            _logError('Upload attempt $attempt for image ${i + 1}');
+
+            // Progressive timeout increase with each retry
+            final timeout = Duration(seconds: baseTimeout.inSeconds * attempt);
+
+            final urls = await database
+                .uploadCarImages([images[i]], userId).timeout(timeout);
+
+            if (urls.isNotEmpty) {
+              imageUrl = urls.first;
+              _logError(
+                  'Image ${i + 1} uploaded successfully on attempt $attempt');
+              break;
+            }
           } catch (e) {
+            lastException = e is Exception ? e : Exception(e.toString());
             _logError('Upload attempt $attempt failed: $e');
-            if (attempt == 3) rethrow;
-            await Future.delayed(Duration(seconds: attempt * 2));
+
+            if (attempt < maxRetries && !_uploadCancelled) {
+              final delaySeconds = attempt * 2;
+              _logError('Waiting ${delaySeconds}s before retry...');
+              await Future.delayed(Duration(seconds: delaySeconds));
+            }
           }
         }
 
-        if (imageUrl != null) {
+        if (imageUrl != null && !_uploadCancelled) {
           imageUrls.add(imageUrl);
           _logError('Image ${i + 1} uploaded successfully');
+        } else if (!_uploadCancelled) {
+          throw lastException ?? Exception('Failed to upload image ${i + 1}');
         }
       } catch (e) {
-        _logError('Failed to upload image ${i + 1}: $e');
-        throw Exception('Failed to upload image ${i + 1}: $e');
+        if (!_uploadCancelled) {
+          _logError('Failed to upload image ${i + 1}: $e');
+          throw Exception('Failed to upload image ${i + 1}: $e');
+        }
+        break;
       }
     }
 
     return imageUrls;
+  }
+
+  void _cancelUpload() {
+    setState(() {
+      _uploadCancelled = true;
+      _isUploading = false;
+      _uploadStatus = 'Upload cancelled';
+      _uploadProgress = 0.0;
+    });
+    _progressTimer?.cancel();
+    _logError('Upload cancelled by user');
   }
 
   void _resetForm() {
@@ -819,6 +489,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
       _fuelType = 'Petrol';
       _uploadStatus = '';
       _uploadProgress = 0.0;
+      _uploadCancelled = false;
     });
   }
 
@@ -828,12 +499,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
       canPop: !_isUploading,
       onPopInvoked: (didPop) {
         if (_isUploading && !didPop) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Please wait for upload to complete'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          _showCancelDialog();
         }
       },
       child: Scaffold(
@@ -862,6 +528,29 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showCancelDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Upload?'),
+        content: const Text('Are you sure you want to cancel the upload?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _cancelUpload();
+            },
+            child: const Text('Yes'),
+          ),
+        ],
       ),
     );
   }
@@ -904,8 +593,93 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
           },
           onSaved: (value) => _price = double.tryParse(value ?? '0') ?? 0.0,
         ),
-        // Add other form fields here...
+        const SizedBox(height: 12),
+        _buildDropdownFormField<String>(
+          value: _location,
+          items: _locations,
+          onChanged: (value) => setState(() => _location = value ?? 'Lagos'),
+          labelText: 'Location*',
+        ),
+        const SizedBox(height: 12),
+        _buildDropdownFormField<String>(
+          value: _brand,
+          items: _brands,
+          onChanged: (value) => setState(() => _brand = value ?? 'Toyota'),
+          labelText: 'Brand*',
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          decoration: const InputDecoration(
+            labelText: 'Model*',
+            border: OutlineInputBorder(),
+          ),
+          enabled: !_isUploading,
+          validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+          onSaved: (value) => _model = value ?? '',
+        ),
+        const SizedBox(height: 12),
+        _buildDropdownFormField<int>(
+          value: _year,
+          items: List.generate(30, (index) => DateTime.now().year - index),
+          onChanged: (value) =>
+              setState(() => _year = value ?? DateTime.now().year),
+          labelText: 'Year*',
+        ),
+        const SizedBox(height: 12),
+        _buildDropdownFormField<String>(
+          value: _condition,
+          items: _conditions,
+          onChanged: (value) => setState(() => _condition = value ?? 'Used'),
+          labelText: 'Condition*',
+        ),
+        const SizedBox(height: 12),
+        _buildDropdownFormField<String>(
+          value: _transmission,
+          items: _transmissions,
+          onChanged: (value) =>
+              setState(() => _transmission = value ?? 'Automatic'),
+          labelText: 'Transmission*',
+        ),
+        const SizedBox(height: 12),
+        _buildDropdownFormField<String>(
+          value: _fuelType,
+          items: _fuelTypes,
+          onChanged: (value) => setState(() => _fuelType = value ?? 'Petrol'),
+          labelText: 'Fuel Type*',
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          decoration: const InputDecoration(
+            labelText: 'Mileage (km)*',
+            border: OutlineInputBorder(),
+          ),
+          enabled: !_isUploading,
+          validator: (value) => value?.isEmpty ?? true ? 'Required' : null,
+          onSaved: (value) => _mileage = value ?? '',
+        ),
       ],
+    );
+  }
+
+  Widget _buildDropdownFormField<T>({
+    required T value,
+    required List<T> items,
+    required ValueChanged<T?> onChanged,
+    required String labelText,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      items: items.map((item) {
+        return DropdownMenuItem<T>(
+          value: item,
+          child: Text(item.toString()),
+        );
+      }).toList(),
+      onChanged: _isUploading ? null : onChanged,
+      decoration: InputDecoration(
+        labelText: labelText,
+        border: const OutlineInputBorder(),
+      ),
     );
   }
 
@@ -932,6 +706,12 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: _showCancelDialog,
+          child:
+              const Text('Cancel Upload', style: TextStyle(color: Colors.red)),
+        ),
         const SizedBox(height: 12),
       ],
     );
@@ -958,21 +738,84 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildImageUploadSection() {
-    // Implementation similar to before but with error handling
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Car Images (Upload at least 1 image)',
+          'Car Images (Upload at least 1 image)*',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        // Image display logic here...
-        ElevatedButton.icon(
-          onPressed: _isUploading ? null : _pickImages,
-          icon: const Icon(Icons.camera_alt),
-          label: const Text('Add Images'),
+        if (_imageFiles.isNotEmpty)
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _imageFiles.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          _imageFiles[index],
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      if (!_isUploading)
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => _imageFiles.removeAt(index)),
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: _isUploading ? null : _pickImages,
+              icon: const Icon(Icons.camera_alt),
+              label: const Text('Add Images'),
+            ),
+            if (_imageFiles.isNotEmpty && !_isUploading)
+              TextButton(
+                onPressed: () => setState(() => _imageFiles.clear()),
+                child: const Text('Clear All'),
+              ),
+          ],
         ),
+        if (_imageFiles.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '${_imageFiles.length} image${_imageFiles.length == 1 ? '' : 's'} selected',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ),
       ],
     );
   }
@@ -993,11 +836,30 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
             borderRadius: BorderRadius.circular(4),
           ),
           child: SingleChildScrollView(
-            child: Text(
+            child: SelectableText(
               _debugInfo,
               style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
             ),
           ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: _debugInfo));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Debug info copied to clipboard')),
+                );
+              },
+              child: const Text('Copy'),
+            ),
+            TextButton(
+              onPressed: () => setState(() => _debugInfo = ''),
+              child: const Text('Clear'),
+            ),
+          ],
         ),
       ],
     );
