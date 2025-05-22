@@ -1,3 +1,5 @@
+// ignore_for_file: unused_import, use_build_context_synchronously
+
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
@@ -497,7 +499,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: !_isUploading,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (bool didPop, dynamic result) {
         if (_isUploading && !didPop) {
           _showCancelDialog();
         }
