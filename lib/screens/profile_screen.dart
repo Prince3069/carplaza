@@ -157,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   obscureText: true,
                   validator: (value) =>
-                      value?.length < 6 ? 'Minimum 6 characters' : null,
+                      value!.length < 6 ? 'Minimum 6 characters' : null,
                 ),
               ],
 
