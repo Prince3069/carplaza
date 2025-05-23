@@ -1,3 +1,5 @@
+// ignore_for_file: use_key_in_widget_constructors, library_private_types_in_public_api, prefer_final_fields, use_build_context_synchronously
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -40,7 +42,7 @@ class _TestUploadPageState extends State<TestUploadPage> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Upload successful!')),
+        const SnackBar(content: Text('Upload successful!')),
       );
     } catch (e) {
       setState(() => _isUploading = false);
@@ -60,16 +62,16 @@ class _TestUploadPageState extends State<TestUploadPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Firebase Upload Test')),
+      appBar: AppBar(title: const Text('Firebase Upload Test')),
       body: Column(
         children: [
           ElevatedButton(
             onPressed: _isUploading ? null : _pickAndUploadImage,
             child: _isUploading
-                ? CircularProgressIndicator()
-                : Text('Upload Image'),
+                ? const CircularProgressIndicator()
+                : const Text('Upload Image'),
           ),
-          if (_isUploading) LinearProgressIndicator(),
+          if (_isUploading) const LinearProgressIndicator(),
           Expanded(
             child: ListView.builder(
               itemCount: _imageUrls.length,

@@ -86,9 +86,9 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
     try {
       final pickedFiles = await _picker
           .pickMultiImage(
-            maxWidth: 1024, // Reduced from 1200 for faster upload
+            maxWidth: 1024,
             maxHeight: 1024,
-            imageQuality: 70, // Reduced from 80 for smaller file size
+            imageQuality: 70,
           )
           .timeout(
             const Duration(seconds: 30),
@@ -221,6 +221,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
     _uploadCancelled = false;
 
     final auth = Provider.of<AuthService>(context, listen: false);
+    final database = Provider.of<DatabaseService>(context, listen: false);
     final user = auth.currentUser;
 
     if (user == null) {
@@ -233,43 +234,80 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
 
     _logError('User UID: ${user.uid}');
 
-    // Check verification with shorter timeout
-    try {
-      final isVerified = await auth.isVerifiedSeller(user.uid).timeout(
-            const Duration(seconds: 5),
-            onTimeout: () =>
-                throw TimeoutException('Verification check timeout'),
-          );
-
-      _logError('Verification status: $isVerified');
-
-      if (!isVerified) {
-        _logError('User not verified');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please complete seller verification first'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-        return;
-      }
-    } catch (e) {
-      _logError('Verification check error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Verification check failed: $e')),
-      );
-      return;
-    }
-
     setState(() {
       _isUploading = true;
-      _uploadStatus = 'Starting submission...';
+      _uploadStatus = 'Checking authentication...';
       _uploadProgress = 0.0;
     });
 
     _startProgressTimer();
 
     try {
+      // Step 1: Check authentication status
+      _logError('Checking authentication status...');
+      final authStatus = await database.getAuthStatus();
+      _logError('Auth status: $authStatus');
+
+      if (!authStatus['authenticated']) {
+        throw Exception('Authentication failed: ${authStatus['error']}');
+      }
+
+      setState(() {
+        _uploadStatus = 'Testing Firebase connection...';
+        _uploadProgress = 0.1;
+      });
+
+      // Step 2: Test Firebase connection and authentication
+      _logError('Testing Firebase connection...');
+      final connectionTest = await database.testAuthAndConnection().timeout(
+            const Duration(seconds: 20),
+            onTimeout: () => throw TimeoutException('Connection test timeout'),
+          );
+
+      if (!connectionTest) {
+        throw Exception('Firebase connection test failed');
+      }
+
+      _logError('Firebase connection test passed');
+
+      setState(() {
+        _uploadStatus = 'Checking seller verification...';
+        _uploadProgress = 0.2;
+      });
+
+      // Step 3: Check verification status
+      try {
+        final isVerified = await auth.isVerifiedSeller(user.uid).timeout(
+              const Duration(seconds: 10),
+              onTimeout: () =>
+                  throw TimeoutException('Verification check timeout'),
+            );
+
+        _logError('Verification status: $isVerified');
+
+        if (!isVerified) {
+          _logError('User not verified');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please complete seller verification first'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+      } catch (e) {
+        _logError('Verification check error: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Verification check failed: $e')),
+        );
+        return;
+      }
+
+      setState(() {
+        _uploadStatus = 'Preparing images for upload...';
+        _uploadProgress = 0.3;
+      });
+
       _logError('Starting image upload process...');
       _logError('Total images to upload: ${_imageFiles.length}');
 
@@ -279,16 +317,9 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
             'Image ${i + 1} size: ${(size / 1024 / 1024).toStringAsFixed(2)} MB');
       }
 
-      final database = Provider.of<DatabaseService>(context, listen: false);
-
-      setState(() {
-        _uploadStatus = 'Uploading images...';
-        _uploadProgress = 0.1;
-      });
-
-      // Upload with improved chunked approach
+      // Step 4: Upload images with enhanced error handling
       final imageUrls =
-          await _uploadImagesWithRetry(database, _imageFiles, user.uid);
+          await _uploadImagesEnhanced(database, _imageFiles, user.uid);
 
       if (_uploadCancelled) {
         _logError('Upload was cancelled');
@@ -296,10 +327,11 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
       }
 
       setState(() {
-        _uploadProgress = 0.8;
+        _uploadProgress = 0.9;
         _uploadStatus = 'Creating car listing...';
       });
 
+      // Step 5: Create and save car listing
       final newCar = Car(
         title: _title,
         description: _description,
@@ -321,7 +353,7 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
       _logError('Car object created, saving to database...');
 
       await database.addCar(newCar).timeout(
-            const Duration(seconds: 15), // Reduced timeout for database save
+            const Duration(seconds: 15),
             onTimeout: () => throw TimeoutException('Database save timeout'),
           );
 
@@ -350,7 +382,10 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
 
       if (mounted && !_uploadCancelled) {
         String errorMessage = 'Upload failed';
-        if (e is TimeoutException) {
+
+        if (e.toString().contains('unauthenticated')) {
+          errorMessage = 'Authentication error. Please logout and login again.';
+        } else if (e is TimeoutException) {
           errorMessage =
               'Upload timed out. Please check your internet connection and try again.';
         } else if (e.toString().toLowerCase().contains('network') ||
@@ -390,82 +425,67 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
 
   void _startProgressTimer() {
     _progressTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (_uploadProgress < 0.7 && _isUploading && !_uploadCancelled) {
+      if (_uploadProgress < 0.8 && _isUploading && !_uploadCancelled) {
         setState(() {
-          _uploadProgress += 0.01;
+          _uploadProgress += 0.005;
         });
       }
     });
   }
 
-  Future<List<String>> _uploadImagesWithRetry(
+  Future<List<String>> _uploadImagesEnhanced(
       DatabaseService database, List<File> images, String userId) async {
-    final imageUrls = <String>[];
-    const maxRetries = 3;
-    const baseTimeout = Duration(seconds: 30); // Reduced from 60 seconds
+    _logError('Starting enhanced image upload...');
 
-    for (int i = 0; i < images.length; i++) {
-      if (_uploadCancelled) {
-        throw Exception('Upload cancelled by user');
+    // Try the main upload method first
+    try {
+      setState(() {
+        _uploadStatus = 'Uploading images (enhanced method)...';
+        _uploadProgress = 0.4;
+      });
+
+      final urls = await database.uploadCarImages(images, userId).timeout(
+            Duration(
+                seconds: 60 +
+                    (images.length *
+                        30)), // Dynamic timeout based on image count
+            onTimeout: () => throw TimeoutException('Enhanced upload timeout'),
+          );
+
+      _logError('Enhanced upload completed successfully');
+      return urls;
+    } catch (e) {
+      _logError('Enhanced upload failed: $e');
+
+      // If enhanced method fails, try simple method as fallback
+      if (e.toString().contains('unauthenticated')) {
+        // For authentication errors, don't retry - let it bubble up
+        rethrow;
       }
+
+      _logError('Trying simple upload method as fallback...');
+
+      setState(() {
+        _uploadStatus = 'Retrying with simple upload method...';
+        _uploadProgress = 0.5;
+      });
 
       try {
-        setState(() {
-          _uploadStatus = 'Uploading image ${i + 1}/${images.length}...';
-          _uploadProgress = 0.1 + (i / images.length) * 0.6;
-        });
+        final urls = await database
+            .uploadCarImagesSimple(images, userId)
+            .timeout(
+              Duration(seconds: 45 + (images.length * 15)),
+              onTimeout: () => throw TimeoutException('Simple upload timeout'),
+            );
 
-        _logError('Uploading image ${i + 1}...');
-
-        String? imageUrl;
-        Exception? lastException;
-
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
-          if (_uploadCancelled) break;
-
-          try {
-            _logError('Upload attempt $attempt for image ${i + 1}');
-
-            // Progressive timeout increase with each retry
-            final timeout = Duration(seconds: baseTimeout.inSeconds * attempt);
-
-            final urls = await database
-                .uploadCarImages([images[i]], userId).timeout(timeout);
-
-            if (urls.isNotEmpty) {
-              imageUrl = urls.first;
-              _logError(
-                  'Image ${i + 1} uploaded successfully on attempt $attempt');
-              break;
-            }
-          } catch (e) {
-            lastException = e is Exception ? e : Exception(e.toString());
-            _logError('Upload attempt $attempt failed: $e');
-
-            if (attempt < maxRetries && !_uploadCancelled) {
-              final delaySeconds = attempt * 2;
-              _logError('Waiting ${delaySeconds}s before retry...');
-              await Future.delayed(Duration(seconds: delaySeconds));
-            }
-          }
-        }
-
-        if (imageUrl != null && !_uploadCancelled) {
-          imageUrls.add(imageUrl);
-          _logError('Image ${i + 1} uploaded successfully');
-        } else if (!_uploadCancelled) {
-          throw lastException ?? Exception('Failed to upload image ${i + 1}');
-        }
-      } catch (e) {
-        if (!_uploadCancelled) {
-          _logError('Failed to upload image ${i + 1}: $e');
-          throw Exception('Failed to upload image ${i + 1}: $e');
-        }
-        break;
+        _logError('Simple upload completed successfully');
+        return urls;
+      } catch (e2) {
+        _logError('Simple upload also failed: $e2');
+        throw Exception(
+            'Both upload methods failed. Enhanced: $e, Simple: $e2');
       }
     }
-
-    return imageUrls;
   }
 
   void _cancelUpload() {
