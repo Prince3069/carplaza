@@ -44,7 +44,7 @@ class CarItem extends StatelessWidget {
 
             // Car Details
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(7.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
