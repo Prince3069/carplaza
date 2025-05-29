@@ -16,8 +16,7 @@ class DatabaseService {
         .orderBy('postedDate', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) =>
-                Car.fromMap(doc.id, doc.data() as Map<String, dynamic>))
+            .map((doc) => Car.fromMap(doc.id, doc.data()))
             .toList());
   }
 

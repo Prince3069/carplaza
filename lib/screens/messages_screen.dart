@@ -1,22 +1,23 @@
-// ignore_for_file: use_key_in_widget_constructors
-
 import 'package:flutter/material.dart';
-import 'package:car_plaza/widgets/responsive_layout.dart';
+import 'package:car_plaza/widgets/responsive.dart';
 
 class MessagesScreen extends StatelessWidget {
   const MessagesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveLayout(
-      mobileBody: MessagesContent(),
-      tabletBody: MessagesContent(),
-      desktopBody: MessagesContent(),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Messages'),
+      ),
+      body: const MessagesContent(),
     );
   }
 }
 
 class MessagesContent extends StatelessWidget {
+  const MessagesContent({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Center(

@@ -15,6 +15,8 @@ class Car {
   final String sellerId;
   final DateTime postedDate;
   final bool isVerified;
+  final int views;
+  final List<String> features;
 
   Car({
     this.id,
@@ -33,9 +35,10 @@ class Car {
     required this.sellerId,
     required this.postedDate,
     this.isVerified = false,
+    this.views = 0,
+    this.features = const [],
   });
 
-  // Convert Car to Map
   Map<String, dynamic> toMap() {
     return {
       'title': title,
@@ -53,10 +56,13 @@ class Car {
       'sellerId': sellerId,
       'postedDate': postedDate.toIso8601String(),
       'isVerified': isVerified,
+      'views': views,
+      'features': features,
       'searchKeywords': [
         title.toLowerCase(),
         brand.toLowerCase(),
         model.toLowerCase(),
+        '$brand $model'.toLowerCase(),
         location.toLowerCase(),
         condition.toLowerCase(),
         transmission.toLowerCase(),
@@ -65,7 +71,6 @@ class Car {
     };
   }
 
-  // Create Car from Map
   factory Car.fromMap(String id, Map<String, dynamic> map) {
     return Car(
       id: id,
@@ -84,6 +89,8 @@ class Car {
       sellerId: map['sellerId'] ?? '',
       postedDate: DateTime.parse(map['postedDate']),
       isVerified: map['isVerified'] ?? false,
+      views: map['views']?.toInt() ?? 0,
+      features: List<String>.from(map['features'] ?? []),
     );
   }
 }

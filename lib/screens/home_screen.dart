@@ -1,6 +1,3 @@
-// ignore_for_file: library_private_types_in_public_api
-
-import 'package:car_plaza/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/screens/search_screen.dart';
@@ -9,16 +6,15 @@ import 'package:car_plaza/screens/messages_screen.dart';
 import 'package:car_plaza/screens/profile_screen.dart';
 import 'package:car_plaza/widgets/bottom_nav_bar.dart';
 import 'package:car_plaza/widgets/car_item.dart';
-import 'package:car_plaza/widgets/responsive_layout.dart';
+import 'package:car_plaza/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/services/database_service.dart';
-// import 'package:car_plaza/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -36,17 +32,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Car Plaza', style: TextStyle(color: Colors.white)),
+        title: const Text('Car Plaza'),
         centerTitle: true,
-        backgroundColor: AppColors.primaryColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: ResponsiveLayout(
-        mobileBody: _screens[_currentIndex],
-        tabletBody: _screens[_currentIndex],
-        desktopBody: _screens[_currentIndex],
-      ),
+      body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -74,7 +63,6 @@ class HomeContent extends StatelessWidget {
             'Featured Cars',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primaryColor,
                 ),
           ),
         ),
@@ -99,8 +87,7 @@ class HomeContent extends StatelessWidget {
               return GridView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount:
-                      MediaQuery.of(context).size.width > 600 ? 3 : 2,
+                  crossAxisCount: Responsive.isMobile(context) ? 2 : 3,
                   childAspectRatio: 0.8,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
