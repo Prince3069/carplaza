@@ -1,11 +1,13 @@
+// home_screen.dart
+import 'package:car_plaza/screens/login_screen.dart';
+import 'package:car_plaza/screens/profile_screen.dart';
+import 'package:car_plaza/screens/sell_screen.dart';
+import 'package:car_plaza/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/screens/search_screen.dart';
-import 'package:car_plaza/screens/sell_screen.dart';
 import 'package:car_plaza/screens/messages_screen.dart';
-import 'package:car_plaza/screens/profile_screen.dart';
 import 'package:car_plaza/widgets/bottom_nav_bar.dart';
-// import 'package:car_plaza/widgets/car_item.dart';
 import 'package:car_plaza/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/services/database_service.dart';
@@ -19,28 +21,74 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  late List<Widget> _screens;
 
-  final List<Widget> _screens = [
-    const HomeContent(),
-    const SearchScreen(),
-    const SellScreen(),
-    const MessagesScreen(),
-    const ProfileScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      const HomeContent(),
+      const SearchScreen(),
+      Container(), // Placeholder for Sell screen
+      const MessagesScreen(),
+      const ProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-      ),
+      bottomNavigationBar: Responsive.isMobile(context)
+          ? BottomNavBar(
+              currentIndex: _currentIndex,
+              onTap: (index) {
+                // Handle sell button for guests
+                if (index == 2) {
+                  _handleSellAction(context);
+                } else {
+                  setState(() => _currentIndex = index);
+                }
+              },
+            )
+          : null,
     );
+  }
+
+  void _handleSellAction(BuildContext context) {
+    final auth = Provider.of<AuthService>(context, listen: false);
+
+    if (auth.currentUser == null) {
+      // Show login prompt for guests
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Login Required'),
+          content: const Text('You need to login to sell your car'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              child: const Text('Login'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      setState(() {
+        _currentIndex = 2;
+        _screens[2] = const SellScreen(); // Load SellScreen for logged in users
+      });
+    }
   }
 }
 
@@ -125,16 +173,8 @@ class _HomeContentState extends State<HomeContent> {
                                 ),
                               ],
                             ),
-                            // Action icons
-                            Row(
-                              children: [
-                                _buildActionIcon(Icons.notifications_outlined),
-                                const SizedBox(width: 12),
-                                _buildActionIcon(Icons.favorite_border),
-                                const SizedBox(width: 12),
-                                _buildActionIcon(Icons.account_circle_outlined),
-                              ],
-                            ),
+                            // Action icons - responsive based on screen size
+                            _buildResponsiveActionIcons(context),
                           ],
                         ),
                       ),
@@ -164,13 +204,6 @@ class _HomeContentState extends State<HomeContent> {
                 ),
               ),
             ),
-            // Pinned app bar content
-            // title: const Text(
-            //   'Car Plaza',
-            //   style:
-            //       TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            // ),
-            // centerTitle: true,
           ),
 
           // Categories section
@@ -287,9 +320,12 @@ class _HomeContentState extends State<HomeContent> {
                           const SizedBox(height: 8),
                           ElevatedButton(
                             onPressed: () {
-                              // setState(() {
-                              //   _currentIndex = 2; // Go to sell screen
-                              // });
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SellScreen(),
+                                ),
+                              );
                             },
                             child: const Text('List Your Car'),
                           ),
@@ -326,17 +362,160 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  Widget _buildActionIcon(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
+  Widget _buildResponsiveActionIcons(BuildContext context) {
+    final auth = Provider.of<AuthService>(context);
+
+    if (Responsive.isMobile(context)) {
+      return Row(
+        children: [
+          _buildActionIcon(Icons.notifications_outlined, () {}),
+          const SizedBox(width: 12),
+          _buildActionIcon(Icons.favorite_border, () {}),
+          const SizedBox(width: 12),
+          _buildActionIcon(Icons.account_circle_outlined, () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileScreen(),
+              ),
+            );
+          }),
+        ],
+      );
+    } else {
+      return Row(
+        children: [
+          // Sell Icon (prominent)
+          _buildNavigationActionIcon(
+            Icons.add_circle,
+            'Sell',
+            () {
+              if (auth.currentUser == null) {
+                // Navigate to LoginScreen with message
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const LoginScreen(),
+                  ),
+                );
+              } else {
+                // Navigate directly to SellScreen if logged in
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SellScreen()),
+                );
+              }
+            },
+            isPrimary: true,
+          ),
+          const SizedBox(width: 8),
+
+          // Messages Icon
+          _buildNavigationActionIcon(
+            Icons.message,
+            'Messages',
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MessagesScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+
+          // Notifications Icon
+          _buildNavigationActionIcon(
+            Icons.notifications_outlined,
+            'Notifications',
+            () {
+              // Handle notifications
+            },
+          ),
+          const SizedBox(width: 8),
+
+          // Favorites Icon
+          _buildNavigationActionIcon(
+            Icons.favorite_border,
+            'Favorites',
+            () {
+              // Handle favorites
+            },
+          ),
+          const SizedBox(width: 12),
+
+          // Profile Avatar
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                border:
+                    Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundImage: auth.currentUser?.photoURL != null
+                    ? NetworkImage(auth.currentUser!.photoURL!)
+                    : const NetworkImage('https://via.placeholder.com/150'),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+  }
+
+  Widget _buildActionIcon(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: Colors.white,
+          size: 20,
+        ),
       ),
-      child: Icon(
-        icon,
-        color: Colors.white,
-        size: 20,
+    );
+  }
+
+  Widget _buildNavigationActionIcon(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    bool isPrimary = false,
+  }) {
+    return Tooltip(
+      message: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isPrimary ? Colors.white : Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+            border: isPrimary
+                ? null
+                : Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                  ),
+          ),
+          child: Icon(
+            icon,
+            size: isPrimary ? 24 : 20,
+            color: isPrimary ? const Color(0xFF3B82F6) : Colors.white,
+          ),
+        ),
       ),
     );
   }

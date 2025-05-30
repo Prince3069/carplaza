@@ -3,8 +3,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:car_plaza/routes.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/services/auth_service.dart';
 import 'package:car_plaza/services/database_service.dart';
@@ -53,7 +53,33 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeScreen();
+    _checkAuthAndRedirect();
+  }
+
+  void _checkAuthAndRedirect() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    if (auth.currentUser == null) {
+      // Redirect to profile screen for login
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacementNamed(
+          context,
+          RouteManager.profilePage,
+        );
+
+        // Show message after navigation
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('You need to login to sell your car on Car Plaza.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        });
+      });
+    }
   }
 
   @override
@@ -63,13 +89,19 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  void _initializeScreen() {
-    try {
+  void _logError(String message) {
+    final timestamp = DateTime.now().toString().substring(11, 19);
+    final logMessage = '$timestamp: $message';
+    debugPrint(logMessage);
+
+    if (mounted) {
       setState(() {
-        _debugInfo = 'Screen initialized successfully\n';
+        _debugInfo += '$logMessage\n';
+        final lines = _debugInfo.split('\n');
+        if (lines.length > 50) {
+          _debugInfo = lines.skip(lines.length - 50).join('\n');
+        }
       });
-    } catch (e) {
-      _logError('Initialization error: $e');
     }
   }
 
@@ -185,22 +217,6 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
     } catch (e) {
       _logError('Image compression error: $e');
       return imageFile; // Return original if compression fails
-    }
-  }
-
-  void _logError(String message) {
-    final timestamp = DateTime.now().toString().substring(11, 19);
-    final logMessage = '$timestamp: $message';
-    debugPrint(logMessage);
-
-    if (mounted) {
-      setState(() {
-        _debugInfo += '$logMessage\n';
-        final lines = _debugInfo.split('\n');
-        if (lines.length > 50) {
-          _debugInfo = lines.skip(lines.length - 50).join('\n');
-        }
-      });
     }
   }
 
@@ -543,8 +559,6 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 20),
                   _buildUploadSection(),
                   _buildSubmitButton(),
-                  const SizedBox(height: 20),
-                  _buildDebugSection(),
                 ],
               ),
             ),
@@ -838,51 +852,6 @@ class _SellScreenState extends State<SellScreen> with WidgetsBindingObserver {
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildDebugSection() {
-    if (_debugInfo.isEmpty) return const SizedBox.shrink();
-
-    return ExpansionTile(
-      title: const Text('Debug Info',
-          style: TextStyle(fontWeight: FontWeight.bold)),
-      children: [
-        Container(
-          width: double.infinity,
-          height: 200,
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: SingleChildScrollView(
-            child: SelectableText(
-              _debugInfo,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
-            ),
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: _debugInfo));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Debug info copied to clipboard')),
-                );
-              },
-              child: const Text('Copy'),
-            ),
-            TextButton(
-              onPressed: () => setState(() => _debugInfo = ''),
-              child: const Text('Clear'),
-            ),
-          ],
-        ),
       ],
     );
   }
