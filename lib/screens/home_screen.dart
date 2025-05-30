@@ -1,123 +1,3 @@
-// // ignore_for_file: library_private_types_in_public_api
-
-// import 'package:car_plaza/constants/app_colors.dart';
-// import 'package:flutter/material.dart';
-// import 'package:car_plaza/models/car_model.dart';
-// import 'package:car_plaza/screens/search_screen.dart';
-// import 'package:car_plaza/screens/sell_screen.dart';
-// import 'package:car_plaza/screens/messages_screen.dart';
-// import 'package:car_plaza/screens/profile_screen.dart';
-// import 'package:car_plaza/widgets/bottom_nav_bar.dart';
-// import 'package:car_plaza/widgets/car_item.dart';
-// import 'package:car_plaza/widgets/responsive_layout.dart';
-// import 'package:provider/provider.dart';
-// import 'package:car_plaza/services/database_service.dart';
-// // import 'package:car_plaza/app_colors.dart';
-
-// class HomeScreen extends StatefulWidget {
-//   const HomeScreen({super.key});
-
-//   @override
-//   _HomeScreenState createState() => _HomeScreenState();
-// }
-
-// class _HomeScreenState extends State<HomeScreen> {
-//   int _currentIndex = 0;
-
-//   final List<Widget> _screens = [
-//     const HomeContent(),
-//     const SearchScreen(),
-//     const SellScreen(),
-//     const MessagesScreen(),
-//     const ProfileScreen(),
-//   ];
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Car Plaza', style: TextStyle(color: Colors.white)),
-//         centerTitle: true,
-//         backgroundColor: AppColors.primaryColor,
-//         elevation: 0,
-//         iconTheme: const IconThemeData(color: Colors.white),
-//       ),
-//       body: ResponsiveLayout(
-//         mobileBody: _screens[_currentIndex],
-//         tabletBody: _screens[_currentIndex],
-//         desktopBody: _screens[_currentIndex],
-//       ),
-//       bottomNavigationBar: BottomNavBar(
-//         currentIndex: _currentIndex,
-//         onTap: (index) {
-//           setState(() {
-//             _currentIndex = index;
-//           });
-//         },
-//       ),
-//     );
-//   }
-// }
-
-// class HomeContent extends StatelessWidget {
-//   const HomeContent({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final database = Provider.of<DatabaseService>(context);
-
-//     return Column(
-//       children: [
-//         Padding(
-//           padding: const EdgeInsets.all(16),
-//           child: Text(
-//             'Featured Cars',
-//             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-//                   fontWeight: FontWeight.bold,
-//                   color: AppColors.primaryColor,
-//                 ),
-//           ),
-//         ),
-//         Expanded(
-//           child: StreamBuilder<List<Car>>(
-//             stream: database.cars,
-//             builder: (context, snapshot) {
-//               if (snapshot.hasError) {
-//                 return Center(child: Text('Error: ${snapshot.error}'));
-//               }
-
-//               if (snapshot.connectionState == ConnectionState.waiting) {
-//                 return const Center(child: CircularProgressIndicator());
-//               }
-
-//               List<Car> cars = snapshot.data ?? [];
-
-//               if (cars.isEmpty) {
-//                 return const Center(child: Text('No cars available'));
-//               }
-
-//               return GridView.builder(
-//                 padding: const EdgeInsets.symmetric(horizontal: 16),
-//                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-//                   crossAxisCount:
-//                       MediaQuery.of(context).size.width > 600 ? 3 : 2,
-//                   childAspectRatio: 0.8,
-//                   crossAxisSpacing: 16,
-//                   mainAxisSpacing: 16,
-//                 ),
-//                 itemCount: cars.length,
-//                 itemBuilder: (context, index) {
-//                   return CarItem(car: cars[index]);
-//                 },
-//               );
-//             },
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:car_plaza/models/car_model.dart';
 import 'package:car_plaza/screens/search_screen.dart';
@@ -125,7 +5,7 @@ import 'package:car_plaza/screens/sell_screen.dart';
 import 'package:car_plaza/screens/messages_screen.dart';
 import 'package:car_plaza/screens/profile_screen.dart';
 import 'package:car_plaza/widgets/bottom_nav_bar.dart';
-import 'package:car_plaza/widgets/car_item.dart';
+// import 'package:car_plaza/widgets/car_item.dart';
 import 'package:car_plaza/widgets/responsive.dart';
 import 'package:provider/provider.dart';
 import 'package:car_plaza/services/database_service.dart';
@@ -269,11 +149,11 @@ class _HomeContentState extends State<HomeContent> {
                               'What car are you looking for?',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 28,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 14),
                             _buildSearchBar(),
                           ],
                         ),
@@ -316,7 +196,7 @@ class _HomeContentState extends State<HomeContent> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 13),
                   _buildCategoriesGrid(),
                 ],
               ),
@@ -335,7 +215,7 @@ class _HomeContentState extends State<HomeContent> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStat('326,255', 'Cars Available'),
+                  _buildStat('326,255', 'Cars'),
                   _buildStat('50K+', 'Happy Customers'),
                   _buildStat('1000+', 'Dealers'),
                 ],
@@ -478,7 +358,7 @@ class _HomeContentState extends State<HomeContent> {
         children: [
           // Location dropdown
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: const BoxDecoration(
               border: Border(
                 right: BorderSide(color: Colors.grey, width: 0.5),
@@ -963,16 +843,16 @@ class EnhancedCarItem extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(6),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     '₦${car.price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E3A8A),
+                      color: Color.fromRGBO(201, 214, 250, 1),
                     ),
                   ),
                   const SizedBox(height: 4),
